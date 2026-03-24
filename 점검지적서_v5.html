@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e3a8a">
+<title>점검지적내역서 자동변환 | 대영소방</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;color:#0f172a;background:#fff;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+input,select,textarea,button{font-family:inherit;}
+
+/* ━━━ 최상단 헤더 ━━━ */
+#topbar{
+  height:60px;background:linear-gradient(135deg,#1e3a8a,#2563eb);
+  display:flex;align-items:center;padding:0 16px;gap:12px;
+  box-shadow:0 2px 12px rgba(30,64,175,.35);flex-shrink:0;z-index:200;
+}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-icon{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.logo-title{font-size:16px;font-weight:400;color:#fff;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.7);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.menu-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px 13px;color:#fff;font-size:11px;font-weight:400;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.menu-btn:hover{background:rgba(255,255,255,.25);}
+.menu-btn.ok{background:rgba(34,197,94,.3);border-color:rgba(134,239,172,.5);}
+
+/* ━━━ 본문 레이아웃 ━━━ */
+#body{display:flex;flex:1;overflow:hidden;}
+
+/* ━━━ 좌측 스텝 패널 ━━━ */
+#sidebar{
+  width:200px;flex-shrink:0;background:#fff;
+  border-right:1px solid #e2e8f0;
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+@media(max-width:700px){#sidebar{display:none;}}
+.sidebar-section{padding:14px 14px 6px;font-size:9px;font-weight:400;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;}
+.step-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;cursor:pointer;
+  border-left:3px solid transparent;transition:all .15s;
+  position:relative;
+}
+.step-item:hover{background:#f8fafc;}
+.step-item.active{background:#eff6ff;border-left-color:#2563eb;}
+.step-item.done{border-left-color:#22c55e;}
+.step-num{
+  width:24px;height:24px;border-radius:50%;border:2px solid #e2e8f0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:400;color:#94a3b8;flex-shrink:0;
+  background:#fff;transition:all .15s;
+}
+.step-item.active .step-num{border-color:#2563eb;color:#2563eb;background:#eff6ff;}
+.step-item.done .step-num{border-color:#22c55e;background:#22c55e;color:#fff;}
+.step-info{flex:1;min-width:0;}
+.step-label{font-size:12px;font-weight:400;color:#334155;}
+.step-item.active .step-label{color:#2563eb;}
+.step-sub{font-size:10px;color:#94a3b8;margin-top:1px;}
+.step-badge{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:400;white-space:nowrap;}
+.badge-done{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+.badge-act{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+.badge-wait{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0;}
+.step-connector{width:2px;height:14px;background:#e2e8f0;margin:0 auto 0 22px;}
+.step-connector.done{background:#22c55e;}
+
+/* ━━━ 메인 콘텐츠 ━━━ */
+#main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
+
+/* ━━━ 카드 (그림자 제거, 테두리만) ━━━ */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;}
+.card-title{font-size:13px;font-weight:400;display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.tag{border-radius:7px;padding:2px 10px;font-size:10px;font-weight:400;color:#fff;}
+.tag-blue{background:#2563eb;}.tag-green{background:#16a34a;}.tag-orange{background:#ea580c;}.tag-purple{background:#7c3aed;}
+
+/* ━━━ 버튼 ━━━ */
+.btn{border:none;border-radius:9px;padding:9px 18px;font-size:12px;font-weight:400;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:transform .1s,opacity .1s;}
+.btn:active{transform:scale(.96);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-blue{background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;box-shadow:0 2px 8px rgba(30,64,175,.2);}
+.btn-green{background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;}
+.btn-ghost{background:#fff;color:#475569;border:1.5px solid #e2e8f0;}
+.btn-red{background:#fff;color:#dc2626;border:1.5px solid #fecaca;}
+.btn-sm{padding:6px 12px;font-size:11px;}
+.btn-full{width:100%;justify-content:center;}
+
+/* ━━━ 드롭존 ━━━ */
+.dropzone{border:2px dashed #bfdbfe;border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:#eff6ff;transition:all .2s;margin-bottom:12px;}
+.dropzone:hover,.dropzone.drag{border-color:#2563eb;background:#dbeafe;}
+.dz-icon{font-size:38px;margin-bottom:8px;}
+.dz-label{font-size:13px;font-weight:400;color:#2563eb;}
+.dz-sub{font-size:11px;color:#64748b;margin-top:4px;}
+.file-item{display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px;margin-bottom:6px;}
+.bdg{border-radius:6px;padding:2px 8px;font-size:10px;font-weight:400;}
+.bdg-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+.bdg-ok{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+
+/* ━━━ 진행바 ━━━ */
+.prog-box{background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:14px 18px;margin-top:12px;}
+.prog-hd{display:flex;justify-content:space-between;margin-bottom:8px;}
+.prog-lbl{font-size:12px;font-weight:400;color:#2563eb;}
+.prog-pct{font-size:12px;font-weight:400;color:#2563eb;}
+.prog-track{background:#bfdbfe;border-radius:6px;height:9px;overflow:hidden;}
+.prog-bar{background:linear-gradient(90deg,#1e3a8a,#3b82f6);height:100%;border-radius:6px;transition:width .4s ease;}
+.prog-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.prog-step{font-size:10px;padding:3px 10px;border-radius:20px;background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0;}
+.prog-step.active{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+.prog-step.done{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;}
+
+/* ━━━ 배너 ━━━ */
+.done-banner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-top:12px;}
+.err-banner{background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:13px 16px;margin-top:12px;}
+.err-title{font-size:13px;font-weight:400;color:#dc2626;margin-bottom:5px;}
+.err-msg{font-size:11px;color:#7f1d1d;word-break:break-all;}
+
+/* ━━━ 메모지 ━━━ */
+.memo-paper{background:#fffef0;border:1px solid #e2d58a;border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+.memo-paper-hdr{font-size:12px;font-weight:400;color:#78350f;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #fde68a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.memo-line{display:flex;gap:8px;padding:2px 0;border-bottom:1px solid #fef9c3;align-items:flex-start;}
+.memo-line:last-child{border-bottom:none;}
+.memo-line-num{font-size:10px;color:#a16207;min-width:18px;font-weight:400;padding-top:6px;}
+.memo-line-mark{font-size:10px;color:#d97706;min-width:14px;text-align:center;padding-top:6px;}
+.memo-ta{flex:1;border:none;background:transparent;font-size:12px;color:#1c1917;line-height:1.8;font-family:inherit;outline:none;resize:none;overflow:hidden;padding:2px 0;}
+.memo-ta:focus{background:#fef9c3;border-radius:4px;padding:2px 4px;}
+.memo-footer{font-size:10px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 12px;margin-top:8px;}
+
+/* ━━━ 2차 레이아웃 — 3단 그리드 ━━━ */
+.cfg-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;}
+.cfg-lbl{font-size:10px;color:#64748b;white-space:nowrap;}
+.cfg-input{border:0.5px solid #e2e8f0;border-radius:6px;padding:5px 9px;font-size:12px;background:#fff;color:#0f172a;outline:none;}
+.cfg-input:focus{border-color:#2563eb;}
+.split2{display:grid;grid-template-columns:1fr;gap:10px;}
+@media(max-width:1000px){.split2{grid-template-columns:1fr;}}
+.pane{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:#fff;}
+.pane-hdr{padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
+.pane-icon{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:400;flex-shrink:0;}
+.icon-x{background:#bbf7d0;color:#14532d;}
+.pane-title{font-size:12px;font-weight:400;flex:1;}
+.pane-st{font-size:10px;padding:2px 8px;border-radius:10px;background:#f0fdf4;color:#16a34a;}
+.pane-st.wait{background:#fff7ed;color:#ea580c;}
+.pane-body-scroll{flex:1;overflow:auto;padding:4px;}
+
+
+/* ━━━ 엑셀 ━━━ */
+.xtbl{width:100%;border-collapse:collapse;font-size:10px;}
+.xtbl th{background:#e8edf2;padding:5px 5px;border:1px solid #b0b8c4;font-weight:400;font-size:9px;color:#1e293b;white-space:nowrap;text-align:center;position:relative;user-select:none;}
+.xtbl td{padding:2px 3px;border:1px solid #c8d0da;vertical-align:top;background:#fff;}
+.xtbl td.rn{text-align:center;color:#64748b;font-size:9px;background:#f1f5f9;width:22px;border:1px solid #c8d0da;}
+.xta{width:100%;box-sizing:border-box;border:none;background:transparent;font-size:10.5px;color:#0d1117;font-weight:500;font-family:inherit;resize:none;padding:3px 4px;line-height:1.7;height:54px;overflow-y:auto;}
+.xta:focus{outline:none;background:#eef6ff;}
+.xta.defect-ta{height:60px;font-size:11px;}
+.xta.dirty-dev{border-left:3px solid #f59e0b;background:#fffbeb;}
+/* 자동 입력 칸 (소방시설·화재안전기준코드) */
+.td-auto{background:#e9ecef!important;color:#212529!important;font-weight:400;}
+.td-auto-ta{background:#e9ecef!important;color:#212529!important;font-weight:400;}
+.td-auto-ta:focus{background:#dde3ea!important;}
+/* 컬럼 리사이저 */
+.th-resizer{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;background:transparent;z-index:2;}
+.th-resizer:hover,.th-resizer.dragging{background:#94a3b8;}
+.xsel{width:100%;border:none;background:transparent;font-size:10px;color:#0f172a;font-family:inherit;cursor:pointer;}
+.xsel:focus{outline:none;background:#eff6ff;}
+.star-btn{background:none;border:none;cursor:pointer;font-size:16px;color:#cbd5e1;padding:2px;width:100%;text-align:center;line-height:1;}
+.star-btn.on{color:#d97706;}
+.chk-cell{text-align:center;}
+.chk-cell input{width:14px;height:14px;cursor:pointer;accent-color:#2563eb;}
+
+/* ━━━ HWP 보고서 ━━━ */
+.hwp-title{font-size:14px;font-weight:400;padding:8px 10px;border-bottom:2px solid #1e3a8a;margin-bottom:6px;text-align:center;color:#1e3a8a;}
+.hwp-sub{font-size:11px;color:#334155;padding:4px 8px 8px;font-weight:400;}
+.htbl{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;}
+.htbl th{border:1px solid #334155;padding:4px 5px;background:#f1f5f9;font-size:9px;text-align:center;font-weight:400;color:#334155;}
+.htbl td{border:1px solid #94a3b8;padding:5px 6px;vertical-align:middle;font-size:10px;}
+.htbl td.sf-td{font-weight:400;text-align:center;font-size:9px;background:#f8fafc;white-space:nowrap;}
+.htbl td.fl-td{text-align:center;font-weight:400;white-space:nowrap;}
+.htbl td.nf-td{font-size:9px;color:#64748b;text-align:center;}
+.hwp-foot{font-size:10px;color:#475569;padding:6px 8px;border-top:1.5px solid #334155;margin-top:4px;}
+
+/* ━━━ 보고서 점검내역 셀 내부 ━━━ */
+.dev-nm{font-size:10px;font-weight:400;color:#1e3a8a;margin-bottom:2px;}
+.def-txt{font-size:10px;line-height:1.6;}
+.note-txt{font-size:9px;color:#64748b;margin-top:2px;}
+.bigo-sub{font-size:9px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;margin-top:4px;line-height:1.6;}
+
+/* ━━━ 공식 자체점검 양식 ━━━ */
+.ofcl-title{font-size:13px;font-weight:400;text-align:center;padding:8px 0 6px;border-bottom:2.5px solid #1e3a8a;margin-bottom:8px;color:#1e3a8a;letter-spacing:.05em;}
+.ofcl-site{font-size:12px;font-weight:400;color:#0f172a;padding:4px 2px 8px;letter-spacing:.02em;}
+.ofcl-bigo-td{font-size:10px;line-height:1.9;vertical-align:top;padding:5px 8px !important;}
+
+/* ━━━ 버전 뱃지 ━━━ */
+.ver-badge{display:inline-block;font-size:10px;font-weight:400;padding:2px 8px;border-radius:10px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;cursor:pointer;}
+.ver-badge:hover{background:#dbeafe;}
+
+/* ━━━ 누적 보고서 구분선 ━━━ */
+.saved-report-sep{border:none;border-top:2px dashed #bfdbfe;margin:18px 0 10px;}
+.saved-report-title{font-size:11px;font-weight:400;color:#1e3a8a;padding:4px 8px 8px;display:flex;align-items:center;gap:6px;}
+
+/* ━━━ 하단 저장 바 ━━━ */
+#savebar{
+  height:56px;background:#fff;border-top:1.5px solid #e2e8f0;
+  display:flex;align-items:center;padding:0 16px;gap:10px;
+  flex-shrink:0;box-shadow:0 -2px 10px rgba(30,64,175,.06);z-index:100;
+}
+.save-field{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.save-field-lbl{font-size:10px;color:#64748b;white-space:nowrap;font-weight:400;}
+.save-name-input{flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 11px;font-size:12px;outline:none;color:#0f172a;min-width:0;}
+.save-name-input:focus{border-color:#2563eb;}
+.save-fmt{border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 9px;font-size:11px;background:#f8fafc;cursor:pointer;outline:none;}
+.save-fmt:focus{border-color:#2563eb;}
+.save-sep{width:1px;height:28px;background:#e2e8f0;flex-shrink:0;}
+
+/* ━━━ 모달 ━━━ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:24px;min-width:340px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeIn .2s;}
+.modal-title{font-size:15px;font-weight:400;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.modal-field{margin-bottom:12px;}
+.modal-lbl{font-size:11px;font-weight:400;color:#475569;margin-bottom:5px;}
+.modal-input{width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:12px;outline:none;color:#0f172a;}
+.modal-input:focus{border-color:#2563eb;}
+.modal-row{display:flex;gap:8px;margin-top:16px;}
+.modal-note{font-size:10px;color:#94a3b8;margin-top:6px;}
+
+/* ━━━ API 패널 ━━━ */
+.api-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.15);padding:20px;z-index:999;min-width:320px;}
+.api-panel.open{display:block;}
+.api-dot{width:7px;height:7px;border-radius:50%;background:#6b7280;display:inline-block;}
+.api-dot.ok{background:#4ade80;}
+.api-row{display:flex;gap:8px;margin-bottom:8px;}
+.api-input{flex:1;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:12px;font-family:monospace;outline:none;color:#0f172a;}
+.api-input:focus{border-color:#2563eb;}
+.api-status{border-radius:9px;padding:9px 13px;font-size:12px;font-weight:400;display:flex;align-items:center;gap:8px;margin-top:8px;}
+.api-status.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;}
+.api-status.fail{background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;}
+.api-wrap{position:relative;}
+
+/* ━━━ 토스트 ━━━ */
+.toast{position:fixed;bottom:70px;right:16px;background:#1e3a8a;color:#fff;border-radius:10px;padding:10px 18px;font-size:12px;font-weight:400;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.2);transform:translateY(12px);opacity:0;pointer-events:none;transition:all .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ━━━ 상태바 ━━━ */
+.sbar{display:flex;gap:10px;align-items:center;padding:8px 12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;font-size:11px;flex-wrap:wrap;}
+.si{display:flex;align-items:center;gap:4px;color:#64748b;}
+.sdot{width:6px;height:6px;border-radius:50%;}
+.sdot-g{background:#22c55e;}.sdot-o{background:#f59e0b;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ━━━ 컬러 제거 — 흑백 UI ━━━ */
+#topbar{background:#fff!important;border-bottom:2px solid #334155;box-shadow:none!important;}
+.logo-title{color:#0f172a!important;}.logo-sub{color:#64748b!important;}
+.logo-icon{background:#f1f5f9!important;color:#334155!important;}
+.menu-btn{background:#fff!important;border:1px solid #94a3b8!important;color:#334155!important;}
+.menu-btn:hover{background:#f8fafc!important;}
+.menu-btn.ok{background:#f1f5f9!important;border-color:#334155!important;}
+.api-dot{background:#94a3b8!important;}.api-dot.ok{background:#334155!important;}
+.tag-blue,.tag-green,.tag-orange,.tag-purple{background:#334155!important;}
+.btn-blue{background:#94a3b8!important;box-shadow:none!important;color:#fff!important;}
+.btn-green{background:#94a3b8!important;color:#fff!important;}
+.btn-ghost{background:#fff!important;color:#64748b!important;border-color:#cbd5e1!important;}
+.btn-red{background:#fff!important;color:#94a3b8!important;border-color:#cbd5e1!important;}
+.step-item:hover{background:#f8fafc!important;}
+.step-item.active{background:#f8fafc!important;border-left-color:#94a3b8!important;}
+.step-item.done{border-left-color:#cbd5e1!important;}
+.step-item.active .step-num{border-color:#cbd5e1!important;color:#94a3b8!important;background:#f8fafc!important;}
+.step-item.active .step-label{color:#475569!important;}
+.step-item.done .step-num{background:#cbd5e1!important;border-color:#cbd5e1!important;color:#fff!important;}
+.step-connector.done{background:#cbd5e1!important;}
+.badge-done,.badge-act{background:#f8fafc!important;color:#94a3b8!important;border-color:#e2e8f0!important;}
+.dropzone{background:#f8fafc!important;border-color:#94a3b8!important;}
+.dropzone:hover,.dropzone.drag{background:#f1f5f9!important;border-color:#334155!important;}
+.dz-label{color:#334155!important;}
+.bdg-blue,.bdg-ok{background:#f8fafc!important;color:#334155!important;border-color:#e2e8f0!important;}
+.prog-box{background:#f8fafc!important;border-color:#e2e8f0!important;}
+.prog-lbl,.prog-pct{color:#334155!important;}
+.prog-track{background:#e2e8f0!important;}
+.prog-bar{background:#475569!important;}
+.prog-step.active{background:#f1f5f9!important;color:#334155!important;border-color:#94a3b8!important;}
+.prog-step.done{background:#f8fafc!important;color:#475569!important;border-color:#e2e8f0!important;}
+.done-banner{background:#fffef0!important;border:1px solid #e2d58a!important;}
+.memo-paper{background:#fffef0!important;border-color:#e2d58a!important;}
+#memoOut{background:#fffef0;border:1px solid #e2d58a;border-radius:12px;padding:14px 16px;margin-top:4px;}
+.memo-paper-hdr{color:#334155!important;border-bottom-color:#e2e8f0!important;}
+.memo-line-num,.memo-line-mark{color:#64748b!important;}
+.memo-line{border-bottom-color:#f1f5f9!important;}
+.memo-ta:focus{background:#f8fafc!important;}
+.memo-footer{background:#f8fafc!important;border-color:#e2e8f0!important;color:#475569!important;}
+.icon-m,.icon-x,.icon-h{background:#f1f5f9!important;color:#334155!important;}
+.pane-hdr{background:#f8fafc!important;}
+.pane-st{background:#f8fafc!important;color:#475569!important;border:1px solid #e2e8f0;}
+.pane-st.wait{background:#f8fafc!important;color:#64748b!important;}
+.xc:focus,.xta:focus{background:#f8fafc!important;}
+.mi.dirty{background:#f8fafc!important;border-color:#94a3b8!important;}
+.cfg-bar{background:#f8fafc!important;}
+.bigo-sub{background:#f8fafc!important;border-color:#e2e8f0!important;color:#475569!important;}
+.dev-nm{color:#334155!important;}
+.api-status.ok{background:#f8fafc!important;border-color:#e2e8f0!important;color:#334155!important;}
+.api-status.fail{background:#f8fafc!important;border-color:#e2e8f0!important;color:#475569!important;}
+.toast{background:#334155!important;}
+.ver-badge{background:#f8fafc!important;color:#334155!important;border-color:#94a3b8!important;}
+.ver-badge:hover{background:#f1f5f9!important;}
+.saved-report-sep{border-top-color:#e2e8f0!important;}
+.saved-report-title{color:#334155!important;}
+.htbl th{background:#f8fafc!important;}
+.htbl td.sf-td{background:#f8fafc!important;}
+.ofcl-title{color:#334155!important;border-bottom-color:#334155!important;}
+.save-fmt{background:#fff!important;}
+.sdot-g,.sdot-o{background:#94a3b8!important;}
+
+/* ━━━ 인쇄 ━━━ */
+@media print{
+  #topbar,#sidebar,#savebar,#mobileTabBar,.btn,#menu-btn-api,
+  .pane-hdr,.pane-hdr .pane-st,.step-bar,.cfg-bar,
+  #tab0,#tab1,#tab3,.split2,.sbar{display:none!important;}
+  #body{display:block;overflow:visible;}
+  #main{overflow:visible;padding:0;}
+  #tab2{display:block!important;}
+  .card{box-shadow:none;border:none;}
+  .htbl td,.htbl th{border:1px solid #000!important;}
+  .saved-report-sep{border-top:2px dashed #999!important;page-break-before:always;}
+}
+
+/* ━━━ 모바일 최적화 ━━━ */
+@media(max-width:768px){
+  /* 기본 레이아웃 */
+  body{height:100dvh;overflow:hidden;}
+  #topbar{height:52px;padding:0 10px;gap:6px;}
+  .logo-title{font-size:13px;}
+  .logo-sub{display:none;}
+  .logo-icon{width:30px;height:30px;font-size:15px;}
+  /* 상단 버튼 — 가로 스크롤 */
+  .topbar-right{
+    overflow-x:auto;overflow-y:hidden;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    gap:5px;flex-wrap:nowrap;
+    padding-bottom:2px;
+  }
+  .topbar-right::-webkit-scrollbar{display:none;}
+  .menu-btn{padding:5px 9px;font-size:10px;white-space:nowrap;flex-shrink:0;}
+
+  /* 사이드바 숨김 → 하단 탭바로 대체 */
+  #sidebar{display:none!important;}
+  #main{padding:8px;gap:10px;padding-bottom:62px;} /* 하단 탭바 여백 */
+
+  /* 카드 */
+  .card{padding:12px 14px;border-radius:10px;}
+  .card-title{font-size:12px;margin-bottom:10px;}
+
+  /* 버튼 터치 영역 확대 */
+  .btn{min-height:40px;padding:8px 14px;}
+  .btn-sm{min-height:34px;padding:6px 10px;font-size:10px;}
+
+  /* 드롭존 */
+  .dropzone{padding:20px 12px;}
+  .dz-icon{font-size:30px;}
+  .dz-label{font-size:12px;}
+
+  /* 엑셀 테이블 — 가로 스크롤 */
+  .split2{display:block!important;}
+  #xlsWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .xtbl{min-width:600px;}
+  .xta{font-size:9.5px;height:48px;}
+
+  /* 보고서 테이블 */
+  .htbl{font-size:9px;}
+  .htbl td,.htbl th{padding:4px 3px;}
+
+  /* 모달/패널 */
+  .api-panel{min-width:calc(100vw - 24px)!important;right:0!important;left:auto!important;}
+
+  /* 저장바 */
+  #savebar{padding:8px 10px;gap:6px;flex-wrap:wrap;}
+  #savebar .btn{font-size:11px;flex:1;min-width:100px;justify-content:center;}
+
+  /* 하단 탭 내비게이션 */
+  #mobileTabBar{
+    display:flex!important;
+    position:fixed;bottom:0;left:0;right:0;z-index:300;
+    background:#fff;border-top:1px solid #e2e8f0;
+    box-shadow:0 -2px 10px rgba(0,0,0,.08);
+    height:54px;
+  }
+  .mob-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;font-size:9px;font-weight:400;color:#94a3b8;cursor:pointer;
+    border:none;background:none;padding:0;
+    transition:color .15s;
+  }
+  .mob-tab.active{color:#2563eb;}
+  .mob-tab-icon{font-size:20px;line-height:1;}
+}
+@media(min-width:769px){
+  #mobileTabBar{display:none!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ━━━ 최상단 헤더 ━━━ -->
+<div id="topbar">
+  <div class="logo">
+    <div class="logo-icon">🔥</div>
+    <div>
+      <div class="logo-title">점검지적내역서 자동변환 시스템</div>
+      <div class="logo-sub">소방시설 점검 보고서 자동생성 · Claude AI · 대영소방</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="menu-btn" id="menu-btn-conv" onclick="goStep(0);startConv()">⚡ 1차 변환</button>
+    <button class="menu-btn" id="menu-btn-reconv" onclick="reConv()" style="display:none;">🔄 다시 변환</button>
+    <button class="menu-btn" id="btn-add-conv" onclick="addConvert()">➕ 추가 변환</button>
+    <button class="menu-btn" onclick="goTo2nd()">📋 2차 구조화</button>
+    <button class="menu-btn" id="btn-3rd-menu" onclick="do3rdConvert()" title="1·2차 변환 완료 후 사용 가능">🔬 3차 변환</button>
+    <button class="menu-btn" onclick="goStep(2)">📄 보고서 바로가기</button>
+    <div class="api-wrap" id="fmt-wrap">
+      <button class="menu-btn" id="fmtBtn" onclick="toggleFmtPanel()">📋 참조양식</button>
+      <div class="api-panel" id="fmtPanel" style="min-width:340px;right:0;">
+        <div style="font-size:13px;font-weight:400;margin-bottom:8px;">📋 AI 참조양식</div>
+        <div style="font-size:10px;color:#64748b;margin-bottom:10px;">AI가 소방시설명·코드 판단 시 이 양식을 참고합니다</div>
+        <div class="modal-field">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span class="modal-lbl">참조양식 선택</span>
+            <select id="refTplSel" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;font-size:11px;" onchange="applyRefTpl(this.value)">
+              <option value="">-- 직접입력 --</option>
+              <option value="jd">소방시설등 자체점검 결과</option>
+              <option value="op">작동기능점검표</option>
+              <option value="cp">종합정밀점검표</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+            <!-- 텍스트 파일 -->
+            <input type="file" id="refTplFile" accept=".txt,.csv,.md,.html,.json,.hwp,.hwpx" multiple
+              style="display:none;" onchange="loadRefTplFile(this)">
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;"
+              onclick="document.getElementById('refTplFile').click()">📄 텍스트·HWP</button>
+            <!-- PDF·이미지 → Claude 분석 -->
+            <input type="file" id="refPdfFile" accept=".pdf,.jpg,.jpeg,.png" multiple
+              style="display:none;" onchange="loadRefPdfFile(this)">
+            <button class="btn btn-blue btn-sm" style="font-size:11px;"
+              onclick="document.getElementById('refPdfFile').click()">🔍 PDF·이미지 분석</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;"
+              onclick="clearRefFiles()">🗑 전체삭제</button>
+          </div>
+          <div id="refAnalysisStatus" style="font-size:10px;color:#2563eb;margin-bottom:4px;display:none;"></div>
+          <!-- 선택된 파일 목록 -->
+          <div id="refFileList" style="border:1px solid #e2e8f0;border-radius:8px;min-height:80px;max-height:160px;overflow-y:auto;padding:6px;background:#f8fafc;">
+            <div id="refFileEmpty" style="font-size:10px;color:#94a3b8;text-align:center;padding:20px 0;">
+              파일을 추가하면 목록에 표시됩니다<br>AI가 내용을 참조해 소방설비명·코드를 판단합니다
+            </div>
+          </div>
+          <textarea id="cfgRefTpl" style="display:none;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-blue btn-sm" style="flex:1;" onclick="document.getElementById('fmtPanel').classList.remove('open');showToast('✅ 참조양식 저장됨');">✅ 적용</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearRefFiles()">🗑 초기화</button>
+        </div>
+
+      </div>
+    </div>
+    <div class="api-wrap">
+      <button class="menu-btn" id="apiBtnEl" onclick="toggleApiPanel()">
+        <div class="api-dot" id="apiDot"></div>
+        <span id="apiBtnTxt">API 설정</span>
+      </button>
+      <div class="api-panel" id="apiPanel">
+        <div style="font-size:13px;font-weight:400;margin-bottom:12px;">🔑 Claude API 키</div>
+        <div class="api-row">
+          <input class="api-input" id="apiKeyInput" type="password" placeholder="sk-ant-api03-..."
+            oninput="if(this.value.startsWith('sk-ant')){apiKey=this.value.trim();localStorage.setItem('dy_api_key',this.value.trim());document.getElementById('apiDot').className='api-dot ok';}">
+          <button class="btn btn-blue btn-sm" id="apiCheckBtn" onclick="checkApi()">확인</button>
+        </div>
+        <div id="apiStatusEl"></div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:6px;">localStorage에만 저장 · 외부 전송 없음</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ━━━ 본문 ━━━ -->
+<div id="body">
+
+  <!-- 좌측 스텝 패널 -->
+  <div id="sidebar">
+    <div class="sidebar-section">진행 단계</div>
+
+    <div class="step-item" id="si0" onclick="goStep(0)">
+      <div class="step-num" id="sn0">1</div>
+      <div class="step-info">
+        <div class="step-label">1차 변환</div>
+        <div class="step-sub">사진 → 수기 읽기</div>
+      </div>
+      <span class="step-badge badge-act" id="sb0">진행중</span>
+    </div>
+    <div class="step-connector" id="sc01"></div>
+
+    <div class="step-item" id="si1" onclick="goStep(1)">
+      <div class="step-num" id="sn1">2</div>
+      <div class="step-info">
+        <div class="step-label">2차 구조화</div>
+        <div class="step-sub">메모 → 엑셀 정리</div>
+      </div>
+      <span class="step-badge badge-wait" id="sb1">대기</span>
+    </div>
+    <div class="step-connector" id="sc12"></div>
+
+    <div class="step-item" id="si2" onclick="goStep(2)">
+      <div class="step-num" id="sn2">3</div>
+      <div class="step-info">
+        <div class="step-label">보고서</div>
+        <div class="step-sub">자동 동기화</div>
+      </div>
+      <span class="step-badge badge-wait" id="sb2">대기</span>
+    </div>
+
+    <div style="flex:1;"></div>
+    <div style="padding:12px 14px;border-top:1px solid #f1f5f9;">
+      <div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:6px;">대영소방</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
+        <span class="ver-badge" id="verBadge" title="현재 보고서 양식 · 클릭시 기본양식 복원" onclick="setDefaultFormat()">MOD-001</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 콘텐츠 -->
+  <div id="main">
+
+    <!-- ══ 1차 탭 ══ -->
+    <div id="tab0">
+      <div class="card">
+        <div class="card-title"><span class="tag tag-blue">STEP 1</span>수기 메모 사진 업로드</div>
+
+        <div class="dropzone" id="dropzone"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="onDrop(event)"
+          onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📷</div>
+          <div class="dz-label">수기 메모 사진 드래그 또는 클릭 업로드</div>
+          <div class="dz-sub">JPG · PNG · HEIC · 여러 장 동시 가능</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="addFiles(this.files)">
+
+        <div style="font-size:11px;color:#64748b;font-weight:400;margin-bottom:8px;">
+          📁 업로드 파일 (<span id="fileCnt">0</span>장)
+          <span id="clearAllBtn" style="display:none;margin-left:8px;color:#2563eb;cursor:pointer;font-weight:400;" onclick="clearFiles()">전체 삭제</span>
+        </div>
+        <div id="fileList"></div>
+
+        <div style="background:#f8fafc;border-radius:10px;padding:10px 14px;margin-top:10px;">
+          <div style="font-size:11px;font-weight:400;color:#334155;margin-bottom:4px;">🤖 Claude Vision (AI 분석)</div>
+          <div style="font-size:10px;color:#64748b;">Canvas 전처리 + Claude AI 분석</div>
+        </div>
+
+        <!-- 버튼 영역 -->
+        <div id="btn-area" style="display:flex;gap:10px;margin-top:14px;">
+          <button class="btn btn-blue" style="flex:1;font-size:13px;padding:12px;justify-content:center;" onclick="startConv()">
+            ⚡ 1차 변환
+          </button>
+          <button class="btn btn-ghost" style="padding:12px 16px;" onclick="clearFiles()">✕ 취소</button>
+        </div>
+        <div id="reBtn-area" style="display:none;gap:10px;margin-top:14px;">
+          <button class="btn btn-blue" style="flex:1;font-size:13px;padding:12px;justify-content:center;" onclick="reConv()">
+            🔄 다시 변환
+          </button>
+          <button class="btn btn-ghost" style="padding:12px 16px;" onclick="clearFiles()">✕ 취소</button>
+        </div>
+
+        <!-- 진행바 -->
+        <div id="progBox" style="display:none;">
+          <div class="prog-box">
+            <div class="prog-hd"><span class="prog-lbl" id="progLbl">처리 중...</span><span class="prog-pct" id="progPct">0%</span></div>
+            <div class="prog-track"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+            <div class="prog-steps" id="progSteps"></div>
+          </div>
+        </div>
+
+        <!-- 완료 -->
+        <div id="doneBanner" style="display:none;" class="done-banner">
+          <span style="font-size:20px;">✅</span>
+          <div>
+            <div style="font-size:13px;font-weight:400;color:#15803d;" id="doneTitle">변환 완료</div>
+            <div style="font-size:11px;color:#166534;" id="doneSub"></div>
+          </div>
+        </div>
+
+        <!-- 에러 -->
+        <div id="errBanner" style="display:none;" class="err-banner">
+          <div class="err-title">❌ 변환 실패</div>
+          <div class="err-msg" id="errMsg"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="resetState()">다시 시도</button>
+        </div>
+      </div>
+
+      <!-- 메모지 출력 -->
+      <div id="memoOut" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0;">
+            <span class="tag tag-green">1차 결과</span>
+            수기 메모 원본
+            <span class="bdg bdg-ok" id="memoCnt"></span>
+            <span style="font-size:11px;color:#64748b;font-weight:400;">클릭 수정 가능</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="addMemoLine(0)">+ 줄 추가</button>
+          </div>
+        </div>
+        <div id="memoPages"></div>
+      </div>
+    </div>
+
+    <!-- ══ 2차 탭 ══ -->
+    <div id="tab1" style="display:none;">
+      <div class="cfg-bar">
+        <span class="cfg-lbl">대상명</span>
+        <input class="cfg-input" id="cfgSite" value="" placeholder="사업장명" style="flex:1;min-width:100px;" oninput="renderHwp()">
+        <span class="cfg-lbl">동/구역</span>
+        <input class="cfg-input" id="cfgDong" value="" placeholder="동/구역" style="width:100px;" oninput="renderHwp()">
+        <span class="cfg-lbl">담당자</span>
+        <input class="cfg-input" id="cfgMgr" value="" placeholder="담당자" style="width:65px;" oninput="renderHwp()">
+      </div>
+
+      <div class="split2">
+        <!-- 엑셀 구조화 -->
+        <div class="pane" style="max-height:calc(100vh - 240px);">
+          <div class="pane-hdr">
+            <div class="pane-icon icon-x">⊞</div>
+            <span class="pane-title">엑셀 구조화</span>
+            <span class="pane-st" id="stXls">동기화됨</span>
+          </div>
+          <div class="pane-body-scroll">
+            <table class="xtbl"><thead id="xlsHead"></thead><tbody id="xlsBody" onkeydown="xlsKeyNav(event)"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="sbar" style="margin-top:10px;">
+        <div class="si"><div class="sdot sdot-g"></div>엑셀 동기화</div>
+        <div style="flex:1;"></div>
+        <div class="si">총 <strong id="totalRows" style="margin:0 3px;">0</strong>건</div>
+        <button class="btn btn-green btn-sm" onclick="goStep(2)">보고서 보기 →</button>
+      </div>
+    </div>
+
+    <!-- ══ 보고서 탭 ══ -->
+    <div id="tab2" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:400;display:flex;align-items:center;gap:8px;">
+          <span class="tag tag-purple">보고서</span>
+          점검지적내역서 — 자동 동기화
+          <span class="pane-st" id="stHwp">자동 반영</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button id="btnDoneToggle" class="btn btn-sm"
+            style="font-size:10px;padding:4px 10px;background:#dcfce7;color:#166534;border-color:#86efac;"
+            onclick="reportDone=!reportDone;this.textContent=reportDone?'✅ 정비완료':'⚠️ 정비요함';this.style.background=reportDone?'#dcfce7':'#fef9c3';this.style.color=reportDone?'#166534':'#92400e';renderHwp();">⚠️ 정비요함</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ 인쇄</button>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;">
+        <div class="hwp-title">점검지적내역서</div>
+        <div class="hwp-sub" id="hwpSub"></div>
+        <div id="hwpContent"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /body -->
+
+<!-- ━━━ 모바일 하단 탭바 ━━━ -->
+<div id="mobileTabBar" style="display:none;">
+  <button class="mob-tab" id="mobt0" onclick="goStep(0)">
+    <span class="mob-tab-icon">📸</span>1차변환
+  </button>
+  <button class="mob-tab" id="mobt1" onclick="goStep(1)">
+    <span class="mob-tab-icon">📋</span>2차구조화
+  </button>
+  <button class="mob-tab" id="mobt2" onclick="goStep(2)">
+    <span class="mob-tab-icon">📄</span>보고서
+  </button>
+  <button class="mob-tab" onclick="savePdf()" style="color:#475569;">
+    <span class="mob-tab-icon">🖨️</span>PDF
+  </button>
+  <button class="mob-tab" onclick="saveHwp()" style="color:#475569;">
+    <span class="mob-tab-icon">📝</span>HWP
+  </button>
+</div>
+
+<!-- ━━━ 하단 저장 바 ━━━ -->
+<div id="savebar">
+  <input id="saveNameInput" value="점검지적내역서" style="display:none;">
+  <select id="saveFmt" style="display:none;"><option value="json">JSON (.json)</option></select>
+  <button class="btn btn-ghost" style="padding:9px 16px;font-size:12px;" onclick="savePdf()" title="브라우저 인쇄 대화상자로 PDF 저장">
+    🖨️ PDF 저장
+  </button>
+  <button class="btn btn-ghost" style="padding:9px 16px;font-size:12px;" onclick="saveHwp()">
+    📝 HWP 저장
+  </button>
+</div>
+
+
+<!-- ━━━ 토스트 ━━━ -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   소방시설 DB
+══════════════════════════════════════ */
+/* ── 소방시설등의 현황 (공식 양식 기준) ── */
+const SF_DB = {
+  "소화설비":[
+    "소화기구 및 자동소화장치",
+    "주거용주방자동소화장치","상업용주방자동소화장치",
+    "캐비닛형자동소화장치","가스·분말·고체자동소화장치",
+    "옥내소화전설비","스프링클러설비","간이스프링클러설비",
+    "화재조기진압용스프링클러설비","물분무소화설비","미분무소화설비",
+    "포소화설비","이산화탄소소화설비","할론소화설비",
+    "할로겐화합물 및 불활성기체 소화설비","분말소화설비",
+    "강화액소화설비","고체에어로졸소화설비","옥외소화전설비"
+  ],
+  "경보설비":[
+    "단독경보형감지기","비상경보설비",
+    "자동화재탐지설비 및 시각경보기","비상방송설비",
+    "통합감시시설","자동화재속보설비","누전경보기","가스누설경보기"
+  ],
+  "피난구조설비":[
+    "피난기구","공기안전매트·피난사다리",
+    "완강기·미끄럼대·구조대","다수인피난장비",
+    "승강식피난기","하향식피난구용 내림식사다리",
+    "인명구조기구","유도등 및 유도표지","유도표지","피난유도선",
+    "비상조명등","휴대용비상조명등"
+  ],
+  "소화용수설비":["상수도소화용수설비","소화수조 및 저수조"],
+  "소화활동설비":[
+    "거실제연설비","부속실 등 제연설비",
+    "연결송수관설비","연결살수설비",
+    "비상콘센트설비","무선통신보조설비","연소방지설비"
+  ],
+  "기타":["방화문·방화셔터","비상구·피난통로","방염"]
+};
+const SF_PAT = [
+  // ════════════════════════════════
+  //  소화설비
+  // ════════════════════════════════
+  // 주방자동소화 (구체적 먼저)
+  [/주거용.*주방.*소화|주방자동소화|주방.*소화장치/i,"주거용주방자동소화장치","소화설비"],
+  [/상업용.*주방.*소화|캐비닛형자동소화/i,"상업용주방자동소화장치","소화설비"],
+  [/캐비닛형/i,"캐비닛형자동소화장치","소화설비"],
+  [/고체에어로졸/i,"고체에어로졸소화설비","소화설비"],
+  [/소화기구|자동소화장치/i,"소화기구 및 자동소화장치","소화설비"],
+  // 소화기 (약어 포함)
+  [/ABC소화기|분말소화기|포말소화기|CO2소화기/i,"소화기구 및 자동소화장치","소화설비"],
+  [/소화기/i,"소화기구 및 자동소화장치","소화설비"],
+  // 옥내소화전 (약어: 옥소, 소화전)
+  [/옥내소화전|옥소|소화전함|소화전호스|호스릴옥내|방수구(?!망)/i,"옥내소화전설비","소화설비"],
+  [/앵글밸브|소방호스(?!릴)|관창|방수노즐/i,"옥내소화전설비","소화설비"],
+  // 스프링클러 (약어: SP)
+  [/ESFR|화재조기진압.*스프링|조기반응.*스프링/i,"화재조기진압용스프링클러설비","소화설비"],
+  [/간이스프링클러|간이SP|간이.*스프링|캐비닛형.*SP/i,"간이스프링클러설비","소화설비"],
+  [/스프링클러|S\/P|SP(?!헤드.*감지)|헤드(?!감지|파열)|프리액션|준비작동식|알람밸브|플로우스위치|드라이밸브/i,"스프링클러설비","소화설비"],
+  [/습식.*스프링|건식.*스프링|일제살수/i,"스프링클러설비","소화설비"],
+  // 물분무·미분무
+  [/미분무/i,"미분무소화설비","소화설비"],
+  [/물분무|드렌처/i,"물분무소화설비","소화설비"],
+  // 가스계 소화설비
+  [/이산화탄소소화|CO2소화|탄산가스소화/i,"이산화탄소소화설비","소화설비"],
+  [/FM200|NOVEC|FK5-1-12|HFC-227|HFC-125|할로겐화합물|불활성기체|IG-541|IG-100|IG-55/i,"할로겐화합물 및 불활성기체 소화설비","소화설비"],
+  [/할론1301|할론1211|할론2402|할론/i,"할론소화설비","소화설비"],
+  // 분말·강화액·포
+  [/제1종분말|제2종분말|제3종분말|제4종분말|분말소화|분말약제/i,"분말소화설비","소화설비"],
+  [/강화액/i,"강화액소화설비","소화설비"],
+  [/포소화|포헤드|포약제|포방출|AFFF|ATC포/i,"포소화설비","소화설비"],
+  // 옥외소화전
+  [/옥외소화전|옥외.*소화전|호스릴옥외/i,"옥외소화전설비","소화설비"],
+
+  // ════════════════════════════════
+  //  경보설비
+  // ════════════════════════════════
+  [/단독경보형감지기|단독경보형|단독경보감지기/i,"단독경보형감지기","경보설비"],
+  // 자탐 (가장 많이 쓰이는 약어)
+  [/자탐|자화탐|자동화재탐지|시각경보기|시각경보장치/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  // 감지기 종류 (모두 자탐 소속)
+  [/차동식감지기|차동식스포트형|차동식분포형|공기관식|열전대식/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/정온식감지기|정온식스포트형|정온식감지선형/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/보상식감지기|보상식스포트형/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/광전식감지기|광전식스포트형|광전식분리형|이온화식|연기감지기|연감지기/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/불꽃감지기|자외선감지기|적외선감지기/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/아날로그감지기|주소형감지기|어드레서블/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/열복합형|열연기복합형|복합형감지기|다신호방식/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/CO감지기|일산화탄소감지기/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  // 수신기·발신기·경보장치
+  [/P형수신기|R형수신기|GP형수신기|GR형수신기|수신기/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/발신기|MCP|중계기|중계반/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  [/경종|벨(?!체크)|사이렌(?!경보)|감지기/i,"자동화재탐지설비 및 시각경보기","경보설비"],
+  // 비상방송
+  [/비상방송|방송설비|비상앰프|비상스피커|방송장치|음향장치(?!경보)/i,"비상방송설비","경보설비"],
+  // 통합감시
+  [/통합감시|종합방재/i,"통합감시시설","경보설비"],
+  // 속보설비
+  [/속보기|자동화재속보|자동속보/i,"자동화재속보설비","경보설비"],
+  // 누전경보기
+  [/누전경보기|누전경보|ZCT|영상변류기/i,"누전경보기","경보설비"],
+  // 가스누설경보기
+  [/가스누설경보|가스감지기|도시가스감지|LPG감지/i,"가스누설경보기","경보설비"],
+  // 비상경보설비
+  [/비상경보설비|비상벨|경보벨|비상타종/i,"비상경보설비","경보설비"],
+
+  // ════════════════════════════════
+  //  피난구조설비
+  // ════════════════════════════════
+  [/하향식피난구|내림식사다리/i,"하향식피난구용 내림식사다리","피난구조설비"],
+  [/승강식피난기|승강식피난/i,"승강식피난기","피난구조설비"],
+  [/다수인피난장비|다수인피난/i,"다수인피난장비","피난구조설비"],
+  [/완강기|간이완강기/i,"완강기·미끄럼대·구조대","피난구조설비"],
+  [/미끄럼대|구조대(?!경보)|피난교|피난밧줄|공기안전매트/i,"완강기·미끄럼대·구조대","피난구조설비"],
+  [/피난사다리|고정식사다리|올림식사다리/i,"완강기·미끄럼대·구조대","피난구조설비"],
+  [/피난기구/i,"피난기구","피난구조설비"],
+  [/공기호흡기|방열복|인명구조기구/i,"인명구조기구","피난구조설비"],
+  // 유도등 종류 (통로·피난구·객석)
+  [/피난구유도등|통로유도등|객석유도등/i,"유도등 및 유도표지","피난구조설비"],
+  [/유도등|유도표지|피난유도표지/i,"유도등 및 유도표지","피난구조설비"],
+  [/피난유도선/i,"피난유도선","피난구조설비"],
+  // 비상조명등
+  [/휴대용비상조명등|휴대용.*비상조명/i,"휴대용비상조명등","피난구조설비"],
+  [/비조등|비상조명등|비상조명등|비상등(?!콘센트)|비상전등/i,"비상조명등","피난구조설비"],
+
+  // ════════════════════════════════
+  //  소화용수설비
+  // ════════════════════════════════
+  [/소화수조|저수조|급수탑/i,"소화수조 및 저수조","소화용수설비"],
+  [/상수도소화용수|소화용수|소화수/i,"상수도소화용수설비","소화용수설비"],
+
+  // ════════════════════════════════
+  //  소화활동설비
+  // ════════════════════════════════
+  [/부속실제연|계단실제연|전실제연|급기가압|부속실.*제연/i,"부속실 등 제연설비","소화활동설비"],
+  [/거실제연|제연경계벽|제연팬|배연구|배연창|제연댐퍼|방연댐퍼/i,"거실제연설비","소화활동설비"],
+  [/제연설비|배연설비|제연/i,"거실제연설비","소화활동설비"],
+  [/연결송수관|연송|쌍구형방수구|단구형방수구/i,"연결송수관설비","소화활동설비"],
+  [/연결살수|연살/i,"연결살수설비","소화활동설비"],
+  [/비상콘센트|비상전원콘센트/i,"비상콘센트설비","소화활동설비"],
+  [/무선통신보조|무선통신|무선중계기|이동통신중계/i,"무선통신보조설비","소화활동설비"],
+  [/연소방지설비|연소방지/i,"연소방지설비","소화활동설비"],
+
+  // ════════════════════════════════
+  //  기타 (건축·방화)
+  // ════════════════════════════════
+  [/자동방화셔터|방화셔터/i,"방화문·방화셔터","기타"],
+  [/방화문|방화댐퍼|자동폐쇄장치|갑종방화문|을종방화문/i,"방화문·방화셔터","기타"],
+  [/방화구획|내화구조|방화벽|방화칸막이/i,"방화문·방화셔터","기타"],
+  [/비상탈출구|비상구|피난통로|피난계단|특별피난계단/i,"비상구·피난통로","기타"],
+  [/방염처리|방염물품|방염대상/i,"방염","기타"],
+  [/방염/i,"방염","기타"],
+];
+const NFPC_MAP = {
+  // 소화설비
+  "소화기구 및 자동소화장치":"NFPC 101",
+  "주거용주방자동소화장치":"NFPC 101","상업용주방자동소화장치":"NFPC 101",
+  "캐비닛형자동소화장치":"NFPC 101","가스·분말·고체자동소화장치":"NFPC 101",
+  "옥내소화전설비":"NFPC 102",
+  "스프링클러설비":"NFPC 103",
+  "간이스프링클러설비":"NFPC 103A",
+  "화재조기진압용스프링클러설비":"NFPC 103B",
+  "물분무소화설비":"NFPC 104","미분무소화설비":"NFPC 104A",
+  "포소화설비":"NFPC 105",
+  "이산화탄소소화설비":"NFPC 106",
+  "할론소화설비":"NFPC 107",
+  "할로겐화합물 및 불활성기체 소화설비":"NFPC 107A",
+  "분말소화설비":"NFPC 108","강화액소화설비":"NFPC 108A",
+  "고체에어로졸소화설비":"NFPC 108B",
+  "옥외소화전설비":"NFPC 109",
+  // 경보설비
+  "단독경보형감지기":"NFPC 201A",
+  "비상경보설비":"NFPC 201",
+  "비상방송설비":"NFPC 202",
+  "자동화재탐지설비 및 시각경보기":"NFPC 203",
+  "자동화재속보설비":"NFPC 204",
+  "누전경보기":"NFPC 205",
+  "가스누설경보기":"NFPC 206",
+  "통합감시시설":"NFPC 207",
+  // 피난구조설비
+  "피난기구":"NFPC 301","완강기·미끄럼대·구조대":"NFPC 301",
+  "공기안전매트·피난사다리":"NFPC 301","다수인피난장비":"NFPC 301",
+  "승강식피난기":"NFPC 301","하향식피난구용 내림식사다리":"NFPC 301",
+  "인명구조기구":"NFPC 302",
+  "유도등 및 유도표지":"NFPC 303","유도표지":"NFPC 303","피난유도선":"NFPC 303",
+  "비상조명등":"NFPC 304","휴대용비상조명등":"NFPC 304A",
+  // 소화용수설비
+  "상수도소화용수설비":"NFPC 401","소화수조 및 저수조":"NFPC 402",
+  // 소화활동설비
+  "거실제연설비":"NFPC 501","부속실 등 제연설비":"NFPC 501A",
+  "연결송수관설비":"NFPC 502","연결살수설비":"NFPC 503",
+  "비상콘센트설비":"NFPC 504","무선통신보조설비":"NFPC 505","연소방지설비":"NFPC 506",
+  // 기타
+  "방화문·방화셔터":"건축법 제64조",
+  "비상구·피난통로":"화재예방법 시행령",
+  "방염":"소방시설법 제20조",
+  // 특수 장소 (NFPC 600번대)
+  "터널소방시설":"NFPC 603",
+  "고층건축물소방시설":"NFPC 604",
+  "지하구소방시설":"NFPC 605",
+  "특수가연물":"NFPC 606",
+  "임시소방시설":"NFPC 607",
+  "공동주택소방시설":"NFPC 608",
+  // 약어·별칭도 매핑
+  "소화기":"NFPC 101",
+  "감지기":"NFPC 203",
+  "유도등":"NFPC 303",
+  "비상조명등":"NFPC 304",
+  "피난기구":"NFPC 301",
+};
+function detectSF(t){
+  for(const[p,d,g]of SF_PAT){
+    const m=t.match(p);
+    if(m)return{device:d,matched:m[0],group:g};  // matched = 원문에서 실제 매칭된 텍스트
+  }
+  return{device:"",matched:"",group:"기타"};
+}
+// 줄바꿈 → <br> 변환 (보고서 출력용)
+function nl2br(s){return(s||"").replace(/\n/g,"<br>");}
+function getNFPC(d){
+  if(!d)return"-";
+  // 1. 정확히 일치
+  if(NFPC_MAP[d])return NFPC_MAP[d];
+  // 2. 공백·괄호 제거 후 포함 검색
+  const clean=d.replace(/\s|\(.*?\)/g,"");
+  for(const[k,v]of Object.entries(NFPC_MAP)){
+    if(k.replace(/\s/g,"")===clean)return v;       // 공백 무시 일치
+    if(clean.includes(k.replace(/\s/g,""))||k.replace(/\s/g,"").includes(clean))return v; // 부분 포함
+  }
+  // 3. SF_PAT으로 재탐지
+  const det=detectSF(d);
+  return(det.device&&NFPC_MAP[det.device])||"-";
+}
+function inferFloor(t){const m=t.match(/(지하\s*\d+층?|B\d+[층F]?|\d+층|\d+F)/i);return m?m[0].replace(/\s/g,""):""}
+
+/* ══════════════════════════════════════
+   상태
+══════════════════════════════════════ */
+let curStep = 0;
+let apiKey = "";
+let pipeMode = "claude";   // always claude — Google Vision UI removed
+let uploadedFiles = [];
+let memoPages = [];
+let rows2 = [];
+let appendMode = false;
+let syncTimer = null;
+let savedReports = [];     // 누적 보고서 배열
+let reportStyle = 'default'; // 'default' | 'official'
+let checkType = 'operation'; // 'operation' | 'comprehensive'
+let reportDone = false;      // false=정비요함, true=정비완료
+
+/* ══════════════════════════════════════
+   스텝 전환
+══════════════════════════════════════ */
+function goStep(n){
+  curStep = n;
+  [0,1,2].forEach(i => {
+    const tab=document.getElementById(`tab${i}`);
+    if(tab)tab.style.display = i===n?"block":"none";
+    const si = document.getElementById(`si${i}`);
+    if(si)si.classList.toggle("active", i===n);
+    const mt=document.getElementById(`mobt${i}`);
+    if(mt)mt.classList.toggle("active", i===n);
+  });
+  if(n===1) render2nd();
+  if(n===2) renderHwp();
+  updateStepUI();
+}
+
+function updateStepUI(){
+  const conv1done = memoPages.length>0 && memoPages[0].lines.length>0;
+  const conv2done = rows2.length>0;
+  const states = [
+    conv1done ? "done" : curStep===0?"active":"wait",
+    conv2done ? "done" : curStep===1?"active":"wait",
+    curStep===2?"active":"wait"
+  ];
+  states.forEach((st,i)=>{
+    const si=document.getElementById(`si${i}`);
+    const sn=document.getElementById(`sn${i}`);
+    const sb=document.getElementById(`sb${i}`);
+    si.className="step-item"+(curStep===i?" active":st==="done"?" done":"");
+    sn.textContent = st==="done"?"✓":(i+1);
+    sb.className="step-badge "+(st==="done"?"badge-done":st==="active"?"badge-act":"badge-wait");
+    sb.textContent = st==="done"?"완료":st==="active"?"진행중":"대기";
+    if(i<2){
+      document.getElementById(`sc${i}${i+1}`).className="step-connector"+(st==="done"?" done":"");
+    }
+  });
+  // 3차 변환 버튼: 1·2차 완료 시에만 활성화
+  const btn3=document.getElementById("btn-3rd-menu");
+  if(btn3){btn3.disabled=!(conv1done&&conv2done);btn3.style.opacity=conv1done&&conv2done?"1":"0.4";}
+}
+
+/* ══════════════════════════════════════
+   API 키
+══════════════════════════════════════ */
+function toggleApiPanel(){
+  document.getElementById("apiPanel").classList.toggle("open");
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".api-wrap"))document.getElementById("apiPanel").classList.remove("open");
+  if(!e.target.closest("#fmt-wrap"))document.getElementById("fmtPanel").classList.remove("open");
+});
+async function checkApi(){
+  const key=document.getElementById("apiKeyInput").value.trim();
+  if(!key){showApiStatus("fail","키를 입력하세요");return;}
+  const btn=document.getElementById("apiCheckBtn");
+  btn.textContent="확인 중...";btn.disabled=true;
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:5,messages:[{role:"user",content:"hi"}]})
+    });
+    if(r.status===200||r.status===201){
+      apiKey=key;
+      localStorage.setItem("dy_api_key",key);
+      showApiStatus("ok","연결 성공 ✓");
+      document.getElementById("apiDot").className="api-dot ok";
+      document.getElementById("apiBtnEl").className="menu-btn ok";
+      document.getElementById("apiBtnTxt").textContent="API 연결됨";
+      setTimeout(()=>document.getElementById("apiPanel").classList.remove("open"),1000);
+    } else if(r.status===401){
+      showApiStatus("fail","인증 실패");
+    } else {
+      showApiStatus("fail","오류 "+r.status);
+    }
+  }catch(e){showApiStatus("fail","네트워크 오류");}
+  btn.textContent="확인";btn.disabled=false;
+}
+function showApiStatus(type,msg){
+  const el=document.getElementById("apiStatusEl");
+  el.className="api-status "+type;
+  el.innerHTML=`<span>${type==="ok"?"✅":"❌"}</span><span>${msg}</span>`;
+}
+(function loadKey(){
+  const s=localStorage.getItem("dy_api_key");
+  if(!s)return;
+  apiKey=s;
+  document.getElementById("apiKeyInput").value=s;
+  document.getElementById("apiDot").className="api-dot ok";
+  document.getElementById("apiBtnEl").className="menu-btn ok";
+  document.getElementById("apiBtnTxt").textContent="API 연결됨";
+  showApiStatus("ok","저장된 키 로드됨");
+})();
+
+/* ══════════════════════════════════════
+   파일 업로드
+══════════════════════════════════════ */
+function onDrop(e){e.preventDefault();document.getElementById("dropzone").classList.remove("drag");addFiles(e.dataTransfer.files);}
+function addFiles(files){
+  [...files].filter(f=>f.type.startsWith("image/")||/\.(jpg|jpeg|png|heic|heif|webp)$/i.test(f.name))
+    .forEach(f=>uploadedFiles.push({name:f.name,size:(f.size/1024/1024).toFixed(1)+" MB",page:uploadedFiles.length+1,_file:f}));
+  renderFileList();
+}
+function removeFile(i){uploadedFiles.splice(i,1);uploadedFiles.forEach((f,j)=>f.page=j+1);renderFileList();}
+function clearFiles(){uploadedFiles=[];renderFileList();resetState();}
+function renderFileList(){
+  const list=document.getElementById("fileList"); list.innerHTML="";
+  uploadedFiles.forEach((f,i)=>{
+    const d=document.createElement("div"); d.className="file-item";
+    d.innerHTML=`<span style="font-size:18px;">🖼️</span>
+      <div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</div>
+      <div style="font-size:10px;color:#64748b;">${f.size} · 페이지 ${f.page}</div></div>
+      <span class="bdg bdg-blue">P.${f.page}</span>
+      <button onclick="removeFile(${i})" style="background:#fff;border:1.5px solid #e2e8f0;color:#64748b;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;">✕</button>`;
+    list.appendChild(d);
+  });
+  document.getElementById("fileCnt").textContent=uploadedFiles.length;
+  document.getElementById("clearAllBtn").style.display=uploadedFiles.length?"inline":"none";
+}
+
+/* ══════════════════════════════════════
+   이미지 전처리
+══════════════════════════════════════ */
+async function preprocessImage(file){
+  return new Promise(resolve=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const MAX=2048;let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      const ctx=cv.getContext("2d");ctx.drawImage(img,0,0,w,h);
+      const id=ctx.getImageData(0,0,w,h),d=id.data;
+      let mn=255,mx=0;const gr=new Uint8Array(w*h);
+      for(let i=0,j=0;i<d.length;i+=4,j++){const g=Math.round(.299*d[i]+.587*d[i+1]+.114*d[i+2]);gr[j]=g;if(g<mn)mn=g;if(g>mx)mx=g;}
+      const rng=mx-mn||1;let sm=0;for(const v of gr)sm+=v;const mean=sm/gr.length;
+      for(let i=0,j=0;i<d.length;i+=4,j++){
+        const v=Math.round(((gr[j]-mn)/rng)*255);
+        const e=Math.min(255,Math.max(0,Math.round((v-mean)*1.5+mean)));
+        d[i]=d[i+1]=d[i+2]=e;d[i+3]=255;
+      }
+      ctx.putImageData(id,0,0);
+      const tmp=document.createElement("canvas");tmp.width=w;tmp.height=h;
+      const tc=tmp.getContext("2d");tc.filter="blur(1px)";tc.drawImage(cv,0,0);tc.filter="none";
+      const bl=tc.getImageData(0,0,w,h),sh=ctx.getImageData(0,0,w,h);
+      for(let i=0;i<sh.data.length;i+=4)for(let c=0;c<3;c++)sh.data[i+c]=Math.min(255,Math.max(0,2*sh.data[i+c]-bl.data[i+c]));
+      ctx.putImageData(sh,0,0);
+      cv.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob||file);},"image/jpeg",.92);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
+
+/* ══════════════════════════════════════
+   진행 표시
+══════════════════════════════════════ */
+function setStep(lbl,pct,steps){
+  document.getElementById("progLbl").textContent=lbl;
+  document.getElementById("progPct").textContent=pct+"%";
+  document.getElementById("progBar").style.width=pct+"%";
+  if(steps) document.getElementById("progSteps").innerHTML=steps.map(([ic,lb,st])=>
+    `<span class="prog-step ${st}">${ic} ${lb}</span>`).join("");
+}
+
+function resetState(){
+  document.getElementById("btn-area").style.display="flex";
+  document.getElementById("reBtn-area").style.display="none";
+  document.getElementById("progBox").style.display="none";
+  document.getElementById("doneBanner").style.display="none";
+  document.getElementById("errBanner").style.display="none";
+  document.getElementById("memoOut").style.display="none";
+  document.getElementById("menu-btn-conv").style.display="";
+  document.getElementById("menu-btn-reconv").style.display="none";
+}
+
+function reConv(){
+  // 현재 rows2 + memoPages를 savedReports에 누적 저장 (빈 경우 제외)
+  if(rows2.length > 0 || (memoPages.length > 0 && memoPages[0].lines.length > 0)){
+    const now = new Date();
+    const ts = now.getFullYear() + "-"
+      + String(now.getMonth()+1).padStart(2,"0") + "-"
+      + String(now.getDate()).padStart(2,"0") + " "
+      + String(now.getHours()).padStart(2,"0") + ":"
+      + String(now.getMinutes()).padStart(2,"0");
+    const site = document.getElementById("cfgSite").value || "";
+    const dong = document.getElementById("cfgDong").value || "";
+    savedReports.push({
+      ts,
+      site,
+      dong,
+      rows: JSON.parse(JSON.stringify(rows2)),
+      memoPages: JSON.parse(JSON.stringify(memoPages))
+    });
+  }
+  document.getElementById("reBtn-area").style.display="none";
+  document.getElementById("doneBanner").style.display="none";
+  document.getElementById("memoOut").style.display="none";
+  startConv();
+}
+
+/* ══════════════════════════════════════
+   1차 변환
+══════════════════════════════════════ */
+const PROMPT=`당신은 소방시설 점검 전문가입니다.
+첨부된 수기 점검 메모 사진을 읽어서 내용을 그대로 텍스트로 출력하세요.
+
+규칙:
+1. 사진에 보이는 모든 내용을 줄 단위로 추출
+2. 각 줄을 JSON 배열로 출력
+3. 층/마크 정보(1F, 2F, B1, ✕, ★ 등)는 그대로 포함
+4. 원본 텍스트 최대한 유지 (약어 변환 금지)
+5. 불명확한 글자는 [?]로 표시
+6. 오직 JSON만 출력, 설명 없음
+
+출력 형식:
+["줄1 내용","줄2 내용","줄3 내용",...]`;
+
+async function startConv(){
+  if(!apiKey){alert("🔑 API 키를 먼저 설정해주세요.");return;}
+  if(!uploadedFiles.length){alert("📷 사진을 먼저 업로드해주세요.");return;}
+  document.getElementById("btn-area").style.display="none";
+  document.getElementById("reBtn-area").style.display="none";
+  document.getElementById("progBox").style.display="block";
+  document.getElementById("doneBanner").style.display="none";
+  document.getElementById("errBanner").style.display="none";
+  document.getElementById("memoOut").style.display="none";
+  try{
+    setStep("🖼️ 이미지 전처리 중...",10,[["🖼️","전처리","active"],["🤖","AI 분석",""],["✅","완료",""]]);
+    const toB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(b);});
+    const imgs=[];
+    for(let i=0;i<uploadedFiles.length;i++){
+      setStep(`🖼️ 전처리 (${i+1}/${uploadedFiles.length})`,10+Math.round(i/uploadedFiles.length*30),[["🖼️","전처리","active"],["🤖","AI 분석",""],["✅","완료",""]]);
+      if(uploadedFiles[i]._file){
+        const blob=await preprocessImage(uploadedFiles[i]._file);
+        imgs.push({type:"image",source:{type:"base64",media_type:blob.type||"image/jpeg",data:await toB64(blob)}});
+      }
+    }
+    setStep("🤖 Claude AI 분석 중...",55,[["🖼️","전처리","done"],["🤖","AI 분석","active"],["✅","완료",""]]);
+    const msgContent=imgs.length>0?[...imgs,{type:"text",text:PROMPT}]:[{type:"text",text:PROMPT+"\n\n[테스트: 소방점검 수기 메모 10줄 생성]"}];
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:3000,messages:[{role:"user",content:msgContent}]})
+    });
+    if(!res.ok){const e=await res.text();throw new Error("API 오류 "+res.status+": "+e);}
+    const data=await res.json();
+    let raw=data.content[0].text.trim().replace(/^```json\n?/,"").replace(/^```\n?/,"").replace(/\n?```$/,"").trim();
+    let lines;
+    try{lines=JSON.parse(raw);}catch(e){lines=raw.split("\n").map(l=>l.trim()).filter(Boolean);}
+    if(!Array.isArray(lines)||!lines.length)throw new Error("추출 결과가 비어있습니다.");
+    setStep("✅ 완료!",100,[["🖼️","전처리","done"],["🤖","AI 분석","done"],["✅","완료","active"]]);
+    memoPages=[{pageNum:1,site:"",lines:[...lines]}];
+    document.getElementById("progBox").style.display="none";
+    document.getElementById("btn-area").style.display="none";
+    document.getElementById("reBtn-area").style.display="flex";
+    document.getElementById("doneBanner").style.display="flex";
+    document.getElementById("menu-btn-conv").style.display="none";
+    document.getElementById("menu-btn-reconv").style.display="";
+    document.getElementById("doneTitle").textContent="1차 변환 완료";
+    document.getElementById("doneSub").textContent=`${lines.length}줄 읽기 완료`;
+    document.getElementById("memoCnt").textContent=lines.length+"줄";
+    document.getElementById("memoOut").style.display="block";
+    renderMemo();
+    updateStepUI();
+  }catch(e){
+    document.getElementById("progBox").style.display="none";
+    document.getElementById("btn-area").style.display="flex";
+    document.getElementById("errBanner").style.display="block";
+    document.getElementById("errMsg").textContent=e.message||"알 수 없는 오류";
+  }
+}
+
+/* ══════════════════════════════════════
+   메모지 렌더
+══════════════════════════════════════ */
+function renderMemo(){
+  const cont=document.getElementById("memoPages");cont.innerHTML="";
+  memoPages.forEach((pg,pi)=>{
+    const div=document.createElement("div");div.className="memo-paper";
+    const hdr=document.createElement("div");hdr.className="memo-paper-hdr";
+    hdr.innerHTML=`<span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+      📄 페이지 ${pg.pageNum}
+      <input placeholder="사업장명" value="${pg.site||""}"
+        style="margin-left:6px;border:0.5px solid #fde68a;border-radius:5px;padding:3px 8px;font-size:11px;background:transparent;color:#78350f;outline:none;width:180px;"
+        oninput="memoPages[${pi}].site=this.value;if(${pi}===0){document.getElementById('cfgSite').value=this.value;renderHwp();}">
+      <span style="font-size:10px;color:#a16207;font-weight:400;">동 :</span>
+      <input placeholder="동명" value="${pg.dong||""}"
+        style="border:0.5px solid #fde68a;border-radius:5px;padding:3px 8px;font-size:11px;background:transparent;color:#78350f;outline:none;width:90px;"
+        oninput="memoPages[${pi}].dong=this.value;if(${pi}===0){document.getElementById('cfgDong').value=this.value;renderHwp();}">
+      <button onclick="goTo2nd()" title="2차 구조화 적용"
+        style="border:0.5px solid #fde68a;border-radius:5px;padding:2px 8px;font-size:10px;background:transparent;color:#92400e;cursor:pointer;">📋 2차적용</button>
+    </span>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="addMemoLine(${pi})">+ 줄</button>
+      ${pi>0?`<button class="btn btn-ghost btn-sm" onclick="removePage(${pi})">삭제</button>`:""}
+    </div>`;
+    div.appendChild(hdr);
+    const linesDiv=document.createElement("div");
+    pg.lines.forEach((line,li)=>{
+      const row=document.createElement("div");row.className="memo-line";
+      row.innerHTML=`<span class="memo-line-num">${li+1}</span>
+        <span class="memo-line-mark">${/★|\*/.test(line)?"★":/^[✕X×]/.test(line)?"✕":""}</span>
+        <textarea class="memo-ta" rows="1"
+          onchange="memoPages[${pi}].lines[${li}]=this.value"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${line}</textarea>
+        <button onclick="removeMemoLine(${pi},${li})" style="background:none;border:none;cursor:pointer;font-size:13px;color:#cbd5e1;padding:3px;align-self:flex-start;margin-top:3px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#cbd5e1'">✕</button>`;
+      linesDiv.appendChild(row);
+      setTimeout(()=>{const ta=row.querySelector("textarea");if(ta){ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}},10);
+    });
+    div.appendChild(linesDiv);
+    const footer=document.createElement("div");footer.className="memo-footer";
+    footer.textContent=`총 ${pg.lines.length}줄 · ${pg.site||"사업장 미입력"}${pg.dong?" · "+pg.dong:""}`;
+    div.appendChild(footer);
+    cont.appendChild(div);
+  });
+}
+function addMemoLine(pi){memoPages[pi].lines.push("");renderMemo();setTimeout(()=>{const t=document.querySelectorAll(".memo-ta");if(t.length)t[t.length-1].focus();},50);}
+function removeMemoLine(pi,li){memoPages[pi].lines.splice(li,1);renderMemo();}
+function removePage(pi){memoPages.splice(pi,1);renderMemo();}
+
+/* ══════════════════════════════════════
+   2차 이동
+══════════════════════════════════════ */
+function goTo2nd(){
+  if(!memoPages.length||!memoPages[0].lines.length){showToast("먼저 1차 변환을 완료해주세요.");return;}
+  // 사업장/동 동기화 (첫 페이지 기준)
+  const p0=memoPages[0];
+  document.getElementById("cfgSite").value=p0.site||"";
+  document.getElementById("cfgDong").value=p0.dong||"";
+  // 일반 2차 구조화: savedReports + rows2 모두 초기화 → 보고서 1개
+  // 추가 변환(addConvert 후): savedReports는 유지, rows2만 초기화 → 새 페이지 추가
+  if(!appendMode) savedReports=[];
+  rows2=[];
+  memoPages.forEach(pg=>{
+    pg.lines.forEach(line=>{
+      if(!line.trim())return;
+      const {group,matched}=detectSF(line);  // matched = 원문 매칭 텍스트
+      const floor=inferFloor(line);
+      // 결함 키워드 (교체·요망·필요 추가)
+      const kw=/(불량|단선|탈락|불가|파손|오작동|미작동|이상|교체|요망|필요|확인요함|교체요함)/;
+      const m=line.match(kw);
+      let defect=line,loc="",device="";
+      if(m){
+        const idx=line.indexOf(m[0]);
+        let before=line.slice(0,idx).trim();
+        if(floor)before=before.replace(floor,"").trim();
+        before=before.replace(/^[-·×★\s]+/,"").trim();
+        // SF 매칭 원문이 있으면 우선 사용, 없으면 앞 텍스트 사용
+        device=matched||before;
+        defect=line.slice(idx).trim();
+      } else {
+        // 결함 키워드 없는 경우 — SF 원문 매칭만 device로
+        device=matched;
+        defect=line.trim();
+      }
+      rows2.push({id:rows2.length+1,raw:line,sf_group:group,device,floor,loc,defect,note:"",nfpc:"",bigo:"",star:line.includes("★"),review:false,site:pg.site});
+    });
+  });
+  appendMode=false;
+  updateStepUI();
+  goStep(1);
+  render2nd();
+  renderHwp();
+  // 1차 패턴 적용 후 AI 보완 자동 실행 (버튼 없이)
+  autoStructure();
+}
+
+/* ══════════════════════════════════════
+   2차 렌더 — 3단 동시 업데이트
+══════════════════════════════════════ */
+const COLS=[
+  {key:"bigo",    label:"검토",        type:"review",w:36,  auto:false},
+  {key:"sf_group",label:"소방시설",    type:"input", w:70,  auto:false},
+  {key:"floor",   label:"층",          type:"input", w:44,  auto:false},
+  {key:"loc",     label:"위치",        type:"input", w:78,  auto:false},
+  {key:"device",  label:"소방설비명",  type:"input", w:115, auto:false},
+  {key:"defect",  label:"불량내역",    type:"ta3",   w:null,auto:true},
+  {key:"note",    label:"참고사항",    type:"ta",    w:105, auto:false},
+  {key:"nfpc",    label:"화재안전기준코드",type:"ro", w:88,  auto:false},
+];
+
+function render2nd(){
+  renderXls();
+  updateTotalCnt();
+  // 모든 행 코드·시설 자동완성 (초기 로드 시 누락 방지)
+  rows2.forEach((_,i)=>autoFillCode(i));
+}
+
+
+function renderXls(){
+  // 헤더 (컬럼 리사이저 포함)
+  const head=document.getElementById("xlsHead");
+  head.innerHTML="<tr><th style='width:22px;'>#</th>"+
+    COLS.map((c,ci)=>{
+      const wStyle=c.auto?"min-width:180px;":`width:${c.w}px;`;
+      return `<th style="${wStyle}" data-ci="${ci}">${c.label}<div class="th-resizer" onmousedown="startColResize(event,${ci})"></div></th>`;
+    }).join("")+"</tr>";
+  const tb=document.getElementById("xlsBody");tb.innerHTML="";
+  if(!rows2.length){
+    tb.innerHTML=`<tr><td colspan="${COLS.length+1}" style="text-align:center;padding:24px;color:#94a3b8;font-size:11px;">행이 없습니다<br>1차 탭에서 [2차 구조화 →] 버튼을 클릭하세요</td></tr>`;
+    return;
+  }
+  rows2.forEach((r,i)=>{
+    const tr=document.createElement("tr");tr.id=`xr_${i}`;
+    let html=`<td class="rn" style="width:22px;">${r.id}</td>`;
+    COLS.forEach((c,ci)=>{
+      const v=(r[c.key]||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const tdW=c.auto?"":`width:${c.w}px;`;
+      if(c.type==="star"){
+        html+=`<td style="text-align:center;padding:2px;${tdW}">
+          <button class="star-btn ${r.star?"on":""}" onclick="toggleStar(${i})">${r.star?"★":"☆"}</button>
+        </td>`;
+      }else if(c.key==="nfpc"){
+        html+=`<td id="nfpc_${i}" class="td-auto" style="font-size:9px;text-align:center;padding:4px;${tdW}word-break:break-all;">${r.nfpc&&r.nfpc!=="-"?r.nfpc:""}</td>`;
+      }else if(c.key==="sf_group"){
+        html+=`<td style="${tdW}"><textarea class="xta td-auto-ta" rows="3" data-row="${i}" data-key="${c.key}"
+          oninput="rows2[${i}]['${c.key}']=this.value;autoFillCode(${i});renderHwp();">${v}</textarea></td>`;
+      }else if(c.type==="review"){
+        const chk=r.review?"checked":"";
+        const starBadge=r.star?`<span style="display:block;font-size:9px;font-weight:400;color:#b45309;line-height:1.3;">★ 중요</span>`:"";
+        const reviewBadge=r.review?`<span style="display:block;font-size:9px;font-weight:400;color:#1d4ed8;line-height:1.3;">✓ 검토</span>`:"";
+        html+=`<td style="${tdW}padding:3px 4px;vertical-align:middle;text-align:center;">
+          <input type="checkbox" ${chk} onchange="toggleReview(${i},this.checked)"
+            style="width:13px;height:13px;cursor:pointer;accent-color:#2563eb;display:block;margin:0 auto 2px;">
+          ${starBadge}${reviewBadge}
+        </td>`;
+      }else if(c.key==="device"){
+        html+=`<td style="${tdW}"><textarea class="xta" rows="3" data-row="${i}" data-key="device"
+          title="${r._manualDevice?'수동입력 고정 (더블클릭 해제)':''}"
+          ondblclick="rows2[${i}]._manualDevice=false;this.style.borderColor='';this.style.background='';this.title='';showToast('자동변환 허용됨');"
+          oninput="deviceInput(${i},this);"
+          onblur="applyDeviceCode(${i},this);"
+          style="${r._manualDevice?'border-color:#d97706;background:#fffbeb;':''}">${v}</textarea></td>`;
+      }else{
+        const taClass=c.key==="defect"?"xta defect-ta":"xta";
+        html+=`<td style="${tdW}"><textarea class="${taClass}" rows="3" data-row="${i}" data-key="${c.key}"
+          oninput="rows2[${i}]['${c.key}']=this.value;renderHwp();">${v}</textarea></td>`;
+      }
+    });
+    tr.innerHTML=html;tb.appendChild(tr);
+  });
+}
+function xlsKeyNav(e){
+  if(e.key!=="Enter"||e.target.tagName!=="TEXTAREA")return;
+  if(!e.ctrlKey&&!e.shiftKey)return; // Ctrl+Enter로 다음 행 이동
+  e.preventDefault();
+  const row=parseInt(e.target.dataset.row);
+  const key=e.target.dataset.key;
+  if(isNaN(row)||!key)return;
+  const next=document.querySelector(`#xlsBody textarea[data-row="${row+1}"][data-key="${key}"]`);
+  if(next)next.focus();
+}
+
+/* ══ 컬럼 리사이저 ══ */
+let _rsz={active:false,ci:-1,startX:0,startW:0};
+function startColResize(e,ci){
+  e.preventDefault();
+  _rsz={active:true,ci,startX:e.clientX,startW:COLS[ci].w};
+  const hdl=e.target;hdl.classList.add("dragging");
+  const onMove=ev=>{
+    if(!_rsz.active)return;
+    const c=COLS[_rsz.ci];
+    const diff=ev.clientX-_rsz.startX;
+    const newW=Math.max(40,_rsz.startW+diff);
+    c.w=newW;
+    // 헤더 th와 tbody td 너비 즉시 반영
+    const ths=document.querySelectorAll(`#xlsHead th[data-ci="${_rsz.ci}"]`);
+    ths.forEach(th=>{if(c.auto)th.style.minWidth=newW+"px";else th.style.width=newW+"px";});
+    document.querySelectorAll(`#xlsBody tr`).forEach(tr=>{
+      const td=tr.cells[_rsz.ci+1];
+      if(td){if(c.auto)td.style.minWidth=newW+"px";else td.style.width=newW+"px";}
+    });
+  };
+  const onUp=()=>{
+    _rsz.active=false;hdl.classList.remove("dragging");
+    document.removeEventListener("mousemove",onMove);
+    document.removeEventListener("mouseup",onUp);
+  };
+  document.addEventListener("mousemove",onMove);
+  document.addEventListener("mouseup",onUp);
+}
+function deviceInput(i,el){
+  const val=el.value;
+  // "비고:" 로 시작하면 → bigo 필드로 자동 이동
+  if(/^비고\s*[:：]\s*/i.test(val)){  // 콜론 필수 — "비고:" 또는 "비고："
+    const bigoText=val.replace(/^비고\s*[:：]\s*/i,"").trim();
+    if(bigoText){
+      rows2[i].bigo=(rows2[i].bigo?rows2[i].bigo+"\n":"")+bigoText;
+      el.value=""; rows2[i].device="";
+      const bigoEl=document.querySelector(`#xlsBody [data-row="${i}"][data-key="bigo"]`);
+      if(bigoEl)bigoEl.textContent=rows2[i].bigo;
+      showToast("비고란으로 이동됨");
+    }
+    return;
+  }
+  // 편집 중 표시: 노란 배경 + 점선 테두리
+  el.style.background="#fef9c3";
+  el.style.borderColor="#ca8a04";
+  el.style.borderStyle="dashed";
+  rows2[i].device=val;
+  rows2[i]._manualDevice=true;
+}
+function applyDeviceCode(i,el){
+  // blur 시: 편집된 device 값으로 sf_group·nfpc 재탐색 — device DOM 건드리지 않음
+  const r=rows2[i];
+  // 표시 초기화
+  el.style.background="";
+  el.style.borderColor="";
+  el.style.borderStyle="";
+  if(!r.device)return;
+  // 편집된 값 기준으로 탐색 (기존 값 덮어씀)
+  const {group,device:canonical}=detectSF(r.device);
+  if(group&&group!=="기타")r.sf_group=group;
+  const nfpc=getNFPC(r.device)||getNFPC(canonical)||"-";
+  if(nfpc!=="-")r.nfpc=nfpc;
+  // DOM 갱신 (nfpc·sf_group만)
+  const nfpcCell=document.getElementById(`nfpc_${i}`);
+  if(nfpcCell)nfpcCell.textContent=r.nfpc&&r.nfpc!=="-"?r.nfpc:"";
+  const sgEl=document.querySelector(`#xlsBody textarea[data-row="${i}"][data-key="sf_group"]`);
+  if(sgEl&&r.sf_group&&sgEl.value!==r.sf_group)sgEl.value=r.sf_group;
+}
+function autoFillCode(i){
+  const r=rows2[i];
+
+  // 탐색 대상: device → defect → raw 순서로 모두 시도
+  const candidates=[r.device, r.defect, r.raw].filter(Boolean);
+  if(!candidates.length)return;
+
+  let resolvedDevice="";
+  let nfpc="-";
+  let group="";
+
+  for(const txt of candidates){
+    if(!txt.trim())continue;
+
+    // 1단계: 정확한 설비명으로 직접 조회
+    const n1=getNFPC(txt);
+    if(n1!=="-"&&nfpc==="-"){nfpc=n1;if(!resolvedDevice)resolvedDevice=txt;}
+    if(!group){
+      for(const[g,devs]of Object.entries(SF_DB)){if(devs.includes(txt)){group=g;break;}}
+    }
+
+    // 2단계: detectSF 패턴 탐지
+    if(nfpc==="-"||!group){
+      const det=detectSF(txt);
+      if(det.device){
+        if(!resolvedDevice)resolvedDevice=det.device;
+        if(nfpc==="-"){const n=getNFPC(det.device);if(n!=="-")nfpc=n;}
+        if(!group&&det.group!=="기타")group=det.group;
+        else if(!group)group=det.group;
+      }
+    }
+
+    if(nfpc!=="-"&&group)break; // 모두 찾으면 종료
+  }
+
+  // sf_group·nfpc만 갱신 — device는 절대 수정하지 않음
+  if(nfpc!=="-")r.nfpc=nfpc;
+  if(group)r.sf_group=group;
+
+  // DOM 갱신 (nfpc·sf_group만, device DOM 건드리지 않음)
+  const nfpcCell=document.getElementById(`nfpc_${i}`);
+  if(nfpcCell)nfpcCell.textContent=r.nfpc&&r.nfpc!=="-"?r.nfpc:"";
+  const sgEl=document.querySelector(`#xlsBody textarea[data-row="${i}"][data-key="sf_group"]`);
+  if(sgEl&&r.sf_group&&sgEl.value!==r.sf_group)sgEl.value=r.sf_group;
+}
+function toggleReview(i, checked){
+  rows2[i].review = checked;
+  // 체크 시 불량내역 앞에 ※ 삽입, 해제 시 제거
+  const r = rows2[i];
+  if(checked){
+    if(r.defect && !r.defect.startsWith("※"))
+      r.defect = "※ " + r.defect;
+    else if(!r.defect)
+      r.defect = "※";
+  } else {
+    r.defect = (r.defect||"").replace(/^※\s*/,"");
+  }
+  // DOM 직접 갱신 (재렌더 없이)
+  const ta = document.querySelector(`#xlsBody textarea[data-row="${i}"][data-key="defect"]`);
+  if(ta) ta.value = r.defect;
+  renderHwp();
+}
+/* ── 보고서 양식 직접 입력 ── */
+const SF_GROUPS=["소화설비","경보설비","피난구조설비","소화용수설비","소화활동설비","기타"];
+function addDirectRow(){
+  const tbody=document.getElementById("directInputBody");
+  if(!tbody)return;
+  const tr=document.createElement("tr");
+  tr.innerHTML=`
+    <td><select style="width:100%;font-size:9px;padding:2px;border:1px solid #cbd5e1;border-radius:3px;">
+      <option value="">선택</option>
+      ${SF_GROUPS.map(g=>`<option>${g}</option>`).join("")}
+    </select></td>
+    <td><input type="text" placeholder="층" style="width:100%;font-size:9px;padding:2px 3px;border:1px solid #cbd5e1;border-radius:3px;box-sizing:border-box;"></td>
+    <td><input type="text" placeholder="위치" style="width:100%;font-size:9px;padding:2px 3px;border:1px solid #cbd5e1;border-radius:3px;box-sizing:border-box;"></td>
+    <td><input type="text" placeholder="소방설비명" style="width:100%;font-size:9px;padding:2px 3px;border:1px solid #cbd5e1;border-radius:3px;box-sizing:border-box;" oninput="directDeviceInput(this)"></td>
+    <td><textarea rows="2" placeholder="불량내역을 입력하세요" style="width:100%;font-size:9px;padding:2px 3px;border:1px solid #cbd5e1;border-radius:3px;box-sizing:border-box;resize:none;"></textarea></td>
+    <td><input type="text" placeholder="NFPC" style="width:100%;font-size:9px;padding:2px 3px;border:1px solid #cbd5e1;border-radius:3px;box-sizing:border-box;background:#f8fafc;color:#64748b;"></td>`;
+  // 소방설비명 blur → 코드 자동탐색
+  const devInput=tr.querySelector("td:nth-child(4) input");
+  const nfpcInput=tr.querySelector("td:nth-child(6) input");
+  const sfSelect=tr.querySelector("select");
+  devInput.addEventListener("blur",()=>{
+    const v=devInput.value.trim();if(!v)return;
+    const {group,device}=detectSF(v);
+    if(group&&group!=="기타"&&!sfSelect.value)sfSelect.value=group;
+    const nfpc=getNFPC(v)||getNFPC(device)||"";
+    if(nfpc&&nfpc!=="-")nfpcInput.value=nfpc;
+  });
+  // 행 추가 확인 버튼
+  const btnTd=document.createElement("td");
+  btnTd.style.cssText="text-align:center;vertical-align:middle;padding:2px;";
+  btnTd.innerHTML=`<button class="btn btn-green btn-sm" style="font-size:9px;padding:2px 6px;" onclick="commitDirectRow(this)">✓</button>
+    <button class="btn btn-sm" style="font-size:9px;padding:2px 6px;background:#fee2e2;color:#dc2626;border-color:#fca5a5;" onclick="this.closest('tr').remove()">✕</button>`;
+  tr.appendChild(btnTd);
+  tbody.appendChild(tr);
+  devInput.focus();
+}
+function commitDirectRow(btn){
+  const tr=btn.closest("tr");
+  const cells=tr.querySelectorAll("td");
+  const sf_group=cells[0].querySelector("select").value||"기타";
+  const floor=cells[1].querySelector("input").value.trim();
+  const loc=cells[2].querySelector("input").value.trim();
+  const device=cells[3].querySelector("input").value.trim();
+  const defect=cells[4].querySelector("textarea").value.trim();
+  const nfpc=cells[5].querySelector("input").value.trim();
+  if(!defect&&!device){showToast("소방설비명 또는 불량내역을 입력하세요");return;}
+  rows2.push({id:rows2.length+1,raw:"",sf_group,device,floor,loc,defect,note:"",nfpc,bigo:"",star:false,review:false,site:document.getElementById("cfgSite").value||""});
+  tr.remove();
+  render2nd();renderHwp();
+  showToast("✅ 행 추가됨");
+}
+function directDeviceInput(el){/* blur에서 처리 */}
+function toggleStar(i){
+  rows2[i].star=!rows2[i].star;
+  renderXls();renderHwp();
+}
+function delRow(i){rows2.splice(i,1);rows2.forEach((r,j)=>r.id=j+1);render2nd();}
+function addRow(){
+  rows2.push({id:rows2.length+1,raw:"",sf_group:"",device:"",floor:"",loc:"",defect:"",note:"",nfpc:"",bigo:"",star:false,review:false});
+  render2nd();
+  setTimeout(()=>{const t=document.querySelectorAll("#xlsBody textarea");if(t.length)t[t.length-1].focus();},50);
+}
+function updateTotalCnt(){document.getElementById("totalRows").textContent=rows2.length;}
+
+/* ══════════════════════════════════════
+   참조양식 패널
+══════════════════════════════════════ */
+function toggleFmtPanel(){
+  document.getElementById("fmtPanel").classList.toggle("open");
+}
+const REF_TPLS={
+  jd:`소방시설등 자체점검 결과 양식
+소방시설 구분 | 소방설비명 | 층 | 위치 | 점검결과(불량내역) | 관계법규
+소화설비: 소화기구및자동소화장치(NFPC101), 옥내소화전설비(NFPC102), 스프링클러설비(NFPC103), 간이스프링클러(NFPC103A), 물분무소화설비(NFPC104), 포소화설비(NFPC105), 이산화탄소소화설비(NFPC106), 할론소화설비(NFPC107), 분말소화설비(NFPC108), 옥외소화전설비(NFPC109)
+경보설비: 비상경보설비(NFPC201), 비상방송설비(NFPC202), 자동화재탐지설비및시각경보기(NFPC203), 자동화재속보설비(NFPC204), 누전경보기(NFPC205), 가스누설경보기(NFPC206)
+피난구조설비: 피난기구(NFPC301), 인명구조기구(NFPC302), 유도등및유도표지(NFPC303), 비상조명등(NFPC304)
+소화용수설비: 상수도소화용수설비(NFPC401), 소화수조및저수조(NFPC402)
+소화활동설비: 거실제연설비(NFPC501), 부속실등제연설비(NFPC501A), 연결송수관설비(NFPC502), 연결살수설비(NFPC503), 비상콘센트설비(NFPC504), 무선통신보조설비(NFPC505), 연소방지설비(NFPC506)`,
+  op:`작동기능점검 주요 점검 항목
+소화기: 압력게이지정상, 안전핀체결, 외관손상여부, 설치위치적정
+옥내소화전: 호스연결상태, 노즐개폐상태, 방수압력, 펌프기동확인
+스프링클러: 헤드막힘여부, 배관부식, 알람밸브작동, 펌프기동
+감지기: 오손·탈락, 설치위치적정, 형식승인품 사용
+발신기: 보호판설치, 위치적정, 기동확인
+수신기: 작동상태, 지구음향장치연동, 예비전원
+유도등: 점등확인, 파손여부, 예비전원(20분이상)
+비상조명등: 점등확인, 예비전원(20분이상)
+방화문: 자동폐쇄장치작동, 틈새기준적합`,
+  cp:`종합정밀점검 추가 점검 항목 (작동점검 포함)
+소화펌프: 체절운전, 정격운전, 토출량, 진공도, 전동기과부하
+스프링클러헤드: 감도시험, 살수분포시험, 설치간격
+할론·CO2: 가스량확인, 선택밸브, 기동장치
+제연설비: 차압측정, 방연풍속, 급기량, 배기량
+연결송수관: 방수구압력, 호스접결상태, 송수구막힘
+피난기구: 강도시험, 전개시험, 부착상태`
+};
+let refFiles=[];  // [{name, text}]
+
+function getRefTpl(){
+  const sel=(document.getElementById("cfgRefTpl")?.value||"").trim();
+  const fromFiles=refFiles.map(f=>f.text).join("\n\n");
+  return [sel,fromFiles].filter(Boolean).join("\n\n");
+}
+
+function applyRefTpl(val){
+  if(!val)return;
+  document.getElementById("cfgRefTpl").value=REF_TPLS[val]||"";
+  renderRefFileList();
+}
+
+function renderRefFileList(){
+  const list=document.getElementById("refFileList");
+  const empty=document.getElementById("refFileEmpty");
+  const selVal=(document.getElementById("cfgRefTpl")?.value||"").trim();
+  const selName=document.getElementById("refTplSel")?.options[document.getElementById("refTplSel").selectedIndex]?.text||"";
+
+  const items=[];
+  if(selVal&&selName&&selName!=="-- 직접입력 --")
+    items.push({label:`📋 ${selName}`,sub:"프리셋",removable:false});
+  refFiles.forEach((f,i)=>items.push({label:`📄 ${f.name}`,sub:`${(f.text.length/1024).toFixed(1)} KB`,removable:true,idx:i}));
+
+  if(!items.length){
+    empty.style.display="block";
+    list.querySelectorAll(".ref-item").forEach(el=>el.remove());
+    return;
+  }
+  empty.style.display="none";
+  list.querySelectorAll(".ref-item").forEach(el=>el.remove());
+  items.forEach(item=>{
+    const div=document.createElement("div");
+    div.className="ref-item";
+    div.style.cssText="display:flex;align-items:center;justify-content:space-between;padding:5px 6px;border-radius:6px;margin-bottom:3px;background:#fff;border:1px solid #e2e8f0;font-size:11px;";
+    div.innerHTML=`<span style="font-weight:400;color:#1e293b;">${item.label}</span>
+      <span style="font-size:9px;color:#94a3b8;margin-left:6px;">${item.sub}</span>
+      ${item.removable?`<button onclick="removeRefFile(${item.idx})" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#ef4444;font-size:12px;padding:0 2px;">✕</button>`:""}`;
+    list.appendChild(div);
+  });
+}
+
+function loadRefTplFile(input){
+  const files=[...input.files];if(!files.length)return;
+  document.getElementById("refTplSel").value="";
+  let loaded=0;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      let raw=e.target.result;
+      // HWP는 euc-kr로 읽은 후 한글 텍스트만 추출
+      const ext2=file.name.split(".").pop().toLowerCase();
+      let text=(ext2==="hwp"||ext2==="hwpx")
+        ? raw.replace(/[^\uAC00-\uD7A3\u3131-\u318E\w\s\-\.\(\)\[\]\/]+/g," ").replace(/\s{2,}/g," ").trim()
+        : raw.replace(/\r\n/g,"\n").replace(/\r/g,"\n").replace(/\0/g,"").trim();
+      if(text)refFiles.push({name:file.name,text});
+      loaded++;
+      if(loaded===files.length){renderRefFileList();showToast(`✅ ${loaded}개 파일 추가`);}
+    };
+    reader.onerror=()=>{loaded++;if(loaded===files.length)renderRefFileList();};
+    const ext3=file.name.split(".").pop().toLowerCase();
+    if(ext3==="hwp"||ext3==="hwpx") reader.readAsText(file,"euc-kr");
+    else reader.readAsText(file,"utf-8");
+  });
+  input.value="";
+}
+
+function removeRefFile(idx){
+  refFiles.splice(idx,1);
+  renderRefFileList();
+}
+
+async function loadRefPdfFile(input){
+  const files=[...input.files];if(!files.length)return;
+  if(!apiKey){showToast("❌ API 키 필요");input.value="";return;}
+  const status=document.getElementById("refAnalysisStatus");
+  status.style.display="block";
+  let done=0;
+  for(const file of files){
+    const ext=file.name.split(".").pop().toLowerCase();
+    status.textContent=`⏳ 분석 중: ${file.name}`;
+    const reader=new FileReader();
+    const b64=await new Promise(res=>{
+      reader.onload=e=>res(e.target.result.split(",")[1]);
+      reader.readAsDataURL(file);
+    });
+    const isPdf=ext==="pdf";
+    const mediaType=isPdf?"application/pdf":
+      ext==="png"?"image/png":"image/jpeg";
+    const contentBlk=isPdf
+      ?{type:"document",source:{type:"base64",media_type:mediaType,data:b64}}
+      :{type:"image",source:{type:"base64",media_type:mediaType,data:b64}};
+    try{
+      const headers={"Content-Type":"application/json","x-api-key":apiKey,
+        "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
+      if(isPdf)headers["anthropic-beta"]="pdfs-2024-09-25";
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",headers,
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,
+          messages:[{role:"user",content:[
+            contentBlk,
+            {type:"text",text:`이 소방점검 양식 파일에서 소방시설명, NFPC/NFTC 코드, 관련 약어를 추출하세요.
+다음 형식으로 정리:
+소방시설명 | NFPC코드 | 약어·별칭
+예) 자동화재탐지설비 | NFPC 203 | 자탐, 감지기
+불량내역 키워드, 층/위치 패턴도 있으면 포함하세요.`}
+          ]}]})
+      });
+      if(!res.ok)throw new Error("API "+res.status);
+      const data=await res.json();
+      const text=data.content[0].text.trim();
+      refFiles.push({name:"📊 "+file.name+" (분석결과)",text});
+      done++;
+    }catch(err){
+      status.textContent=`❌ ${file.name}: ${err.message}`;
+    }
+  }
+  renderRefFileList();
+  status.textContent=done?`✅ ${done}개 분석 완료`:"분석 실패";
+  setTimeout(()=>{status.style.display="none";},3000);
+  input.value="";
+}
+
+function clearRefFiles(){
+  refFiles=[];
+  document.getElementById("cfgRefTpl").value="";
+  document.getElementById("refTplSel").value="";
+  renderRefFileList();
+  showToast("참조양식 초기화");
+}
+
+/* ══════════════════════════════════════
+   공식 자체점검 결과 테이블 빌더
+   소방시설등 자체점검 결과 (작동/종합)
+══════════════════════════════════════ */
+function buildOfficialReportTable(dataRows, site, dong){
+  const bigoText=(document.getElementById("cfgBigo")?.value||"").trim();
+  const ORDER=["소화설비","경보설비","피난구조설비","소화용수설비","소화활동설비","소방관련사항","기타"];
+  const groups={};ORDER.forEach(k=>groups[k]=[]);
+  dataRows.forEach(r=>{const k=r.sf_group||"기타";if(!groups[k])groups[k]=[];groups[k].push(r);});
+  const frag=document.createDocumentFragment();
+  if(!dataRows.length){
+    const ph=document.createElement("div");
+    ph.style.cssText="text-align:center;padding:28px;color:#94a3b8;font-size:11px;";
+    ph.textContent="2차 구조화 데이터가 자동 반영됩니다";
+    frag.appendChild(ph);return frag;
+  }
+  // 점검종류 제목
+  const op=checkType==="operation";
+  const titleDiv=document.createElement("div");titleDiv.className="ofcl-title";
+  titleDiv.innerHTML=`소방시설등 자체점검 결과 &nbsp;[ ${op?"■":"□"}작동점검, ${!op?"■":"□"}종합점검 ]`;
+  frag.appendChild(titleDiv);
+  // 대상명
+  const siteDiv=document.createElement("div");siteDiv.className="ofcl-site";
+  const mgrVal=(document.getElementById("cfgMgr")?.value||"").trim();
+  const dongMgr=[dong,mgrVal].filter(Boolean).join(", ");
+  siteDiv.textContent=`대 상 명 : ${site}${dongMgr?" ("+dongMgr+")":""}`;
+  frag.appendChild(siteDiv);
+  // 테이블
+  const tbl=document.createElement("table");tbl.className="htbl";
+  tbl.innerHTML=`<thead><tr>
+    <th style="width:9%;">소방시설</th>
+    <th style="width:5%;">층</th>
+    <th style="width:13%;">위치</th>
+    <th style="width:58%;">점 검 결 과</th>
+    <th style="width:15%;">관계법규</th>
+  </tr></thead>`;
+  const tbody=document.createElement("tbody");
+  ORDER.forEach(grp=>{
+    const gRows=groups[grp]||[];if(!gRows.length)return;
+    gRows.forEach((r,i)=>{
+      const tr=document.createElement("tr");
+      const grpTd=i===0?`<td class="sf-td" rowspan="${gRows.length}">${grp}</td>`:"";
+      // NFPC → NFTC 자동 생성
+      const nfpc=r.nfpc&&r.nfpc!=="-"?r.nfpc:"";
+      const nftc=nfpc.replace(/NFPC/g,"NFTC");
+      const lawHtml=nfpc?`${nfpc}<br><span style="font-size:8px;color:#64748b;">${nftc}</span>`:"&nbsp;";
+      // 점검결과 구성
+      const parts=[];
+      if(r.device)parts.push(`<div class="dev-nm">${r.device}</div>`);
+      if(r.defect)parts.push(`<div class="def-txt">${nl2br(r.defect)}</div>`);
+      if(r.note)parts.push(`<div class="note-txt">※ ${r.note}</div>`);
+      tr.innerHTML=`${grpTd}
+        <td class="fl-td">${r.floor||""}</td>
+        <td>${r.loc||""}</td>
+        <td>${parts.join("")}</td>
+        <td class="nf-td" style="line-height:2;">${lawHtml}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  // 비고 행 (공식 양식 하단) — 개별 bigo + cfgBigo 합산
+  const bigoRowLines=[];
+  dataRows.forEach(r=>{if(r.bigo&&r.bigo.trim())bigoRowLines.push(r.bigo.trim());});
+  if(bigoText)bigoRowLines.push(...bigoText.split("\n").map(l=>l.trim()).filter(Boolean));
+  const bigoFinalCell=bigoRowLines.length
+    ? bigoRowLines.map(l=>l.startsWith("-")?l:`- ${l}`).join("<br>")
+    : "&nbsp;";
+  const bigoTr=document.createElement("tr");
+  bigoTr.innerHTML=`<td class="sf-td" style="font-weight:400;">비 고</td><td colspan="4" class="ofcl-bigo-td">${bigoFinalCell}</td>`;
+  tbody.appendChild(bigoTr);
+  tbl.appendChild(tbody);
+  frag.appendChild(tbl);
+  return frag;
+}
+
+/* ══════════════════════════════════════
+   보고서 테이블 빌더 (공통) — 5열 형식
+   소방시설 | 층 | 위치 | 점검내역 | 관계법규
+══════════════════════════════════════ */
+function buildReportTable(dataRows){
+  const ORDER=["소화설비","경보설비","피난구조설비","소화용수설비","소화활동설비","기타"];
+  const groups={};ORDER.forEach(k=>groups[k]=[]);
+  dataRows.forEach(r=>{const k=r.sf_group||"기타";if(!groups[k])groups[k]=[];groups[k].push(r);});
+  const frag=document.createDocumentFragment();
+  if(!dataRows.length){
+    const ph=document.createElement("div");
+    ph.style.cssText="text-align:center;padding:28px;color:#94a3b8;font-size:11px;";
+    ph.textContent="2차 구조화 데이터가 자동 반영됩니다";
+    frag.appendChild(ph);
+    return frag;
+  }
+  const tbl=document.createElement("table");tbl.className="htbl";
+  tbl.innerHTML=`<thead><tr>
+    <th style="width:9%;">소방시설</th>
+    <th style="width:5%;">층</th>
+    <th style="width:13%;">위치</th>
+    <th style="width:58%;">점 검 내 역</th>
+    <th style="width:15%;">관계법규</th>
+  </tr></thead>`;
+  const tbody=document.createElement("tbody");
+  ORDER.forEach(grp=>{
+    const gRows=groups[grp]||[];if(!gRows.length)return;
+    gRows.forEach((r,i)=>{
+      const tr=document.createElement("tr");
+      const grpTd=i===0?`<td class="sf-td" rowspan="${gRows.length}">${grp}</td>`:"";
+      // 비고 서브칸: ★/비고/기타 기호 줄바꿈
+      const bigoHtml="";
+      tr.innerHTML=`${grpTd}
+        <td class="fl-td">${r.floor||""}</td>
+        <td>${r.loc||""}</td>
+        <td>
+          ${r.device?`<div class="dev-nm">${r.device}</div>`:""}
+          <div class="def-txt">${nl2br(r.defect||"")}</div>
+          ${r.note?`<div class="note-txt">※ ${r.note}</div>`:""}
+          ${bigoHtml}
+        </td>
+        <td class="nf-td">${r.nfpc&&r.nfpc!=="-"?r.nfpc:""}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+  // 비고 행 — 개별 행의 bigo + cfgBigo 합산
+  const bigoLines=[];
+  dataRows.forEach(r=>{if(r.bigo&&r.bigo.trim())bigoLines.push(r.bigo.trim());});
+  const cfgBigoTxt=(document.getElementById("cfgBigo")?.value||"").trim();
+  if(cfgBigoTxt)bigoLines.push(...cfgBigoTxt.split("\n").map(l=>l.trim()).filter(Boolean));
+  const bigoCell=bigoLines.length
+    ? bigoLines.map(l=>l.startsWith("-")?l:`- ${l}`).join("<br>")
+    : "&nbsp;";
+  const bigoTr=document.createElement("tr");
+  bigoTr.innerHTML=`<td class="sf-td" style="font-weight:400;">비 고</td><td colspan="4" class="ofcl-bigo-td">${bigoCell}</td>`;
+  tbody.appendChild(bigoTr);
+  tbl.appendChild(tbody);
+  const stars=dataRows.filter(r=>r.star);
+  const foot=document.createElement("tfoot");
+  foot.innerHTML=`<tr><td colspan="5"><div class="hwp-foot">※ 상기내역 ${reportDone?"정비완료":"정비요함"} · 계 ${dataRows.length}건${stars.length?` · ★ 중요 ${stars.length}건`:""}</div></td></tr>`;
+  tbl.appendChild(foot);
+  frag.appendChild(tbl);
+  return frag;
+}
+
+/* ══════════════════════════════════════
+   보고서 렌더 — 우측 미리보기 패널 (2차 탭)
+══════════════════════════════════════ */
+function renderHwpPane(){
+  const site=document.getElementById("cfgSite").value;
+  const dong=document.getElementById("cfgDong").value;
+  const mgr=document.getElementById("cfgMgr").value;
+  const sub2=document.getElementById("hwpSub2");
+  if(sub2)sub2.textContent=reportStyle==='official'?"":(`대 상 명 : ${site} (${dong}) · 담당 : ${mgr}`);
+  const cont2=document.getElementById("hwpContent2");
+  if(!cont2)return;
+  cont2.innerHTML="";
+  if(reportStyle==='official'){
+    cont2.appendChild(buildOfficialReportTable(rows2,site,dong));
+  }else{
+    cont2.appendChild(buildReportTable(rows2));
+  }
+  const stEl=document.getElementById("stHwp2");
+  if(stEl)stEl.textContent="동기화됨 ✓";
+}
+
+/* ══════════════════════════════════════
+   보고서 렌더 — 메인 보고서 탭 (누적 포함)
+══════════════════════════════════════ */
+function makeReportInfoHeader(site, dong, mgr, pageNum, total, isCurrent){
+  const d=document.createElement("div");
+  d.style.cssText="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:7px 12px;background:#f1f5f9;border-radius:8px;margin-bottom:8px;font-size:11px;color:#1e293b;";
+  const inp="border:1px solid #cbd5e1;border-radius:5px;padding:2px 7px;font-size:11px;background:#fff;color:#0f172a;outline:none;";
+  const si=pageNum-1;
+  const siteChg=isCurrent
+    ?`document.getElementById('cfgSite').value=this.value;renderHwp();`
+    :`savedReports[${si}].site=this.value;`;
+  const dongChg=isCurrent
+    ?`document.getElementById('cfgDong').value=this.value;renderHwp();`
+    :`savedReports[${si}].dong=this.value;`;
+  const mgrPart=isCurrent
+    ?`<strong>담당자 :</strong><input value="${mgr||""}" placeholder="담당자" style="${inp}width:70px;" oninput="document.getElementById('cfgMgr').value=this.value;">`
+    :"";
+  d.innerHTML=`<span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <strong>대상명 :</strong>
+    <input value="${site||""}" placeholder="사업장명" style="${inp}width:180px;" oninput="${siteChg}">
+    <strong>동/구역 :</strong>
+    <input value="${dong||""}" placeholder="동/구역" style="${inp}width:90px;" oninput="${dongChg}">
+    ${mgrPart}
+  </span>
+  <span style="font-size:10px;color:#64748b;white-space:nowrap;">페이지 ${pageNum} / ${total}</span>`;
+  return d;
+}
+function renderHwp(){
+  const site=document.getElementById("cfgSite").value;
+  const dong=document.getElementById("cfgDong").value;
+  const mgr=document.getElementById("cfgMgr").value;
+  const official=reportStyle==='official';
+  const hwpTitle=document.querySelector("#tab2 .hwp-title");
+  const hwpSub=document.getElementById("hwpSub");
+  if(hwpTitle)hwpTitle.style.display=official?"none":"block";
+  if(hwpSub)hwpSub.textContent="";
+  const cont=document.getElementById("hwpContent");cont.innerHTML="";
+  const total=savedReports.length+1;
+
+  // 누적 보고서 먼저 출력 (추가 변환된 이전 페이지)
+  savedReports.forEach((rep,idx)=>{
+    if(idx>0){
+      const hr=document.createElement("hr");
+      hr.className="saved-report-sep";
+      hr.style.cssText="border:none;border-top:3px double #94a3b8;margin:20px 0;";
+      cont.appendChild(hr);
+    }
+    cont.appendChild(makeReportInfoHeader(rep.site,rep.dong,"",idx+1,total,false));
+    cont.appendChild(official
+      ? buildOfficialReportTable(rep.rows,rep.site,rep.dong)
+      : buildReportTable(rep.rows));
+  });
+
+  // 현재 보고서
+  if(savedReports.length>0){
+    const hr=document.createElement("hr");
+    hr.className="saved-report-sep";
+    hr.style.cssText="border:none;border-top:3px double #94a3b8;margin:20px 0;";
+    cont.appendChild(hr);
+  }
+  cont.appendChild(makeReportInfoHeader(site,dong,mgr,total,total,true));
+  cont.appendChild(official
+    ? buildOfficialReportTable(rows2,site,dong)
+    : buildReportTable(rows2));
+
+  const stEl=document.getElementById("stHwp");
+  if(stEl)stEl.textContent="동기화됨 ✓";
+}
+
+/* ══════════════════════════════════════
+   PDF 저장 (window.print)
+══════════════════════════════════════ */
+function savePdf(){
+  // 인쇄 시 파일명 = 대상명 동
+  const name=buildSaveName();
+  const prev=document.title;
+  document.title=name;
+  goStep(2);
+  setTimeout(()=>{window.print();document.title=prev;},300);
+}
+
+/* ══════════════════════════════════════
+   HWP 저장 (HWP 호환 HTML 테이블)
+══════════════════════════════════════ */
+function buildHwpBody(){
+  const site=(document.getElementById("cfgSite")?.value||"").trim();
+  const dong=(document.getElementById("cfgDong")?.value||"").trim();
+  const mgr=(document.getElementById("cfgMgr")?.value||"").trim();
+  const official=reportStyle==='official';
+  const op=checkType==="operation";
+  const ORDER=["소화설비","경보설비","피난구조설비","소화용수설비","소화활동설비","소방관련사항","기타"];
+
+  // 인라인 스타일 상수
+  const S={
+    tbl:`width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6pt;font-family:'맑은 고딕','Malgun Gothic',sans-serif;`,
+    th:`border:1pt solid #000;padding:3pt 2pt;background:#efefef;text-align:center;font-size:9pt;vertical-align:middle;letter-spacing:0;color:#000;`,
+    td:`border:1pt solid #000;padding:3pt 4pt;vertical-align:middle;font-size:9pt;line-height:1.5;color:#000;`,
+    sfTd:`border:1pt solid #000;padding:3pt 2pt;text-align:center;font-size:9pt;background:#f5f5f5;vertical-align:middle;color:#000;`,
+    flTd:`border:1pt solid #000;padding:3pt 2pt;text-align:center;font-size:9pt;vertical-align:middle;color:#000;`,
+    nfTd:`border:1pt solid #000;padding:3pt 2pt;text-align:center;font-size:8.5pt;vertical-align:middle;color:#000;line-height:1.6;`,
+    bigoTd:`border:1pt solid #000;padding:4pt 5pt;font-size:9pt;line-height:1.5;color:#000;`,
+  };
+
+  function buildTable(dataRows, repSite, repDong, repMgr){
+    const groups={};ORDER.forEach(k=>groups[k]=[]);
+    dataRows.forEach(r=>{const k=r.sf_group||"기타";if(!groups[k])groups[k]=[];groups[k].push(r);});
+    const dongMgr=[repDong,repMgr].filter(Boolean).join(", ");
+    const titleTxt=`소방시설등 자체점검 결과 　[ ${op?"■":"□"}작동점검, ${!op?"■":"□"}종합점검 ]`;
+    const siteTxt=`대상명 : ${repSite}${dongMgr?" ("+dongMgr+")":""}`;
+    let rows="";
+    ORDER.forEach(grp=>{
+      const gRows=groups[grp]||[];if(!gRows.length)return;
+      gRows.forEach((r,i)=>{
+        const grpTd=i===0
+          ?`<td rowspan="${gRows.length}" style="${S.sfTd}">${grp}</td>`:"";
+        const nfpc=(r.nfpc&&r.nfpc!=="-")?r.nfpc:"";
+        const nftc=nfpc?nfpc.replace(/NFPC/g,"NFTC"):"";
+        const lawCell=nfpc?`${nfpc}<br><span style="font-size:7.5pt;">${nftc}</span>`:"";
+        const devPart=r.device?`<div style="font-size:9pt;color:#000;margin-bottom:1pt;">${r.device}</div>`:"";
+        const defPart=r.defect?`<div style="font-size:9pt;line-height:1.5;color:#000;">${nl2br(r.defect)}</div>`:"";
+        rows+=`<tr>
+          ${grpTd}
+          <td style="${S.flTd}">${r.floor||""}</td>
+          <td style="${S.td}">${r.loc||""}</td>
+          <td style="${S.td}">${devPart}${defPart}</td>
+          <td style="${S.nfTd}">${lawCell}</td>
+        </tr>`;
+      });
+    });
+    // 비고 행
+    const bigoText=(document.getElementById("cfgBigo")?.value||"").trim();
+    const bigoCell=bigoText?bigoText.replace(/\n/g,"<br>"):"&nbsp;";
+    rows+=`<tr><td style="${S.sfTd}">비고</td><td colspan="4" style="${S.bigoTd}">${bigoCell}</td></tr>`;
+
+    const stars=dataRows.filter(r=>r.star);
+    const footTxt=`※ 상기내역 ${reportDone?"정비완료":"정비요함"} &nbsp;·&nbsp; 계 ${dataRows.length}건${stars.length?" · ★ 중요 "+stars.length+"건":""}`;
+
+    return `
+<div style="margin-bottom:16pt;page-break-inside:avoid;">
+  <div style="font-size:13pt;text-align:center;text-decoration:underline;letter-spacing:0;
+    padding-bottom:4pt;margin-bottom:5pt;border-bottom:1.5pt solid #000;color:#000;">${titleTxt}</div>
+  <div style="font-size:10.5pt;color:#000;padding:3pt 0 6pt;letter-spacing:0;">${siteTxt}</div>
+  <table style="${S.tbl}">
+    <colgroup>
+      <col style="width:9%;"><col style="width:6%;"><col style="width:13%;">
+      <col style="width:57%;"><col style="width:15%;">
+    </colgroup>
+    <thead><tr>
+      <th style="${S.th}">소방시설</th>
+      <th style="${S.th}">층</th>
+      <th style="${S.th}">위치</th>
+      <th style="${S.th}">점검결과</th>
+      <th style="${S.th}">관계법규</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="font-size:9.5pt;color:#1a56db;text-decoration:underline;
+    padding:3pt 0;border-top:1pt solid #000;margin-top:2pt;letter-spacing:0;">${footTxt}</div>
+</div>`;
+  }
+
+  let html="";
+  savedReports.forEach((rep,idx)=>{
+    if(idx>0)html+=`<hr style="border:none;border-top:1.5pt dashed #888;margin:12pt 0;">`;
+    html+=buildTable(rep.rows, rep.site||site, rep.dong||dong, "");
+  });
+  if(savedReports.length>0)html+=`<hr style="border:none;border-top:1.5pt dashed #888;margin:12pt 0;">`;
+  html+=buildTable(rows2, site, dong, mgr);
+  return html;
+}
+
+function buildSaveName(){
+  const site=(document.getElementById("cfgSite")?.value||"").trim();
+  const dong=(document.getElementById("cfgDong")?.value||"").trim();
+  const d=new Date();
+  const dt=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  if(site&&dong) return `${site} ${dong} ${dt}`;
+  if(site) return `${site} ${dt}`;
+  return `점검지적내역서_${dt}`;
+}
+function saveHwp(){
+  const rawName = buildSaveName();
+  // 화면 보고서를 최신 상태로 렌더
+  renderHwp();
+
+  // #hwpContent 만 추출 (입력칸·UI 제외)
+  // HWP용 인라인 스타일 테이블 직접 생성
+  const bodyHtml = buildHwpBody();
+
+  const content=`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>소방시설등 자체점검 결과</title>
+<style>
+@page{size:A4;margin:20mm 18mm 20mm 22mm;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'맑은 고딕','Malgun Gothic','HY헤드라인M','굴림',sans-serif;
+  font-size:10pt;color:#000;background:#fff;}
+table{border-collapse:collapse;width:100%;}
+tr{page-break-inside:avoid;}
+</style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+
+  const fileName = rawName + ".hwpx";
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({
+      suggestedName: fileName,
+      types:[{description:"HWP 파일",accept:{"text/html":[".hwpx"]}}]
+    }).then(async handle=>{
+      const w=await handle.createWritable();
+      await w.write(content);
+      await w.close();
+      showToast(`✓ "${handle.name}" 저장 완료`);
+    }).catch(e=>{if(e.name!=="AbortError"){downloadBlob(content,"text/html",fileName);}});
+  } else {
+    downloadBlob(content,"text/html",fileName);
+  }
+}
+
+function downloadBlob(content,mimeType,fileName){
+  const blob=new Blob([content],{type:mimeType+";charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`✓ "${fileName}" 다운로드`);
+}
+
+/* ══════════════════════════════════════
+   저장 — 다른 이름으로 저장
+══════════════════════════════════════ */
+async function saveFile(){
+  const rawName = document.getElementById("saveNameInput").value.trim() || "점검지적내역서";
+  const fmt = document.getElementById("saveFmt").value;
+
+  let content, mimeType, ext;
+
+  if(fmt==="json"){
+    content = JSON.stringify({
+      meta:{
+        site: document.getElementById("cfgSite").value,
+        dong: document.getElementById("cfgDong").value,
+        mgr:  document.getElementById("cfgMgr").value,
+        savedAt: new Date().toLocaleString("ko-KR")
+      },
+      savedReports,
+      memoPages,
+      rows: rows2
+    }, null, 2);
+    mimeType = "application/json";
+    ext = ".json";
+
+  } else if(fmt==="csv"){
+    const headers = ["번호","★","소방시설","층","위치","소방설비명","불량내역","참고사항","관계법규","비고"];
+    const csvRows = rows2.map(r=>[
+      r.id, r.star?"★":"", r.sf_group, r.floor, r.loc, r.device,
+      `"${(r.defect||"").replace(/"/g,'""')}"`,
+      `"${(r.note||"").replace(/"/g,'""')}"`,
+      r.nfpc, r.bigo
+    ].join(","));
+    content = "\uFEFF" + [headers.join(","), ...csvRows].join("\r\n");
+    mimeType = "text/csv";
+    ext = ".csv";
+
+  } else {
+    // HTML 보고서
+    renderHwp();
+    const hwpHtml = document.getElementById("hwpContent").outerHTML;
+    const sub = document.getElementById("hwpSub").textContent;
+    content = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>점검지적내역서</title>
+<style>
+body{font-family:'Malgun Gothic',sans-serif;font-size:12px;margin:20px;}
+table{width:100%;border-collapse:collapse;}
+th{border:1px solid #334155;padding:4px 6px;background:#f1f5f9;font-size:9px;text-align:center;}
+td{border:1px solid #94a3b8;padding:5px 6px;font-size:10px;vertical-align:middle;}
+.sf-td{font-weight:400;text-align:center;background:#f8fafc;}
+.fl-td{text-align:center;font-weight:400;}
+.saved-report-sep{border:none;border-top:2px dashed #bfdbfe;margin:18px 0 10px;}
+.saved-report-title{font-size:11px;font-weight:400;color:#1e3a8a;padding:4px 8px 8px;}
+</style></head><body>
+<h2 style="text-align:center;border-bottom:2px solid #1e3a8a;padding-bottom:8px;">점검지적내역서</h2>
+<p style="font-weight:400;margin:6px 0 12px;">${sub}</p>
+${hwpHtml}
+</body></html>`;
+    mimeType = "text/html";
+    ext = ".html";
+  }
+
+  const fileName = rawName + ext;
+
+  if(window.showSaveFilePicker){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types:[{
+          description: fmt==="json"?"JSON 데이터":fmt==="csv"?"CSV 파일":"HTML 보고서",
+          accept:{[mimeType]:[ext]}
+        }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      showToast(`✓ "${handle.name}" 저장 완료`);
+      return;
+    }catch(e){
+      if(e.name==="AbortError")return;
+    }
+  }
+
+  downloadBlob(content, mimeType, fileName);
+}
+
+/* ══════════════════════════════════════
+   2차 자동변환 — AI로 소방시설 재분류
+══════════════════════════════════════ */
+async function autoStructure(){
+  if(!rows2.length){showToast("2차 구조화 데이터가 없습니다.");return;}
+  const btn=document.getElementById("btn-auto-struct");
+  if(btn){btn.disabled=true;btn.textContent="⏳ 1차 패턴 분석...";}
+
+  // ── 1차: 로컬 패턴 매칭 ──────────────────────────
+  rows2.forEach((_,i)=>autoFillCode(i));
+  render2nd();
+
+  // 아직 미확정(device 또는 sf_group 비어있는) 행 수집
+  const unclear=rows2.map((r,i)=>({i,r})).filter(({r})=>!r.device||!r.sf_group||r.sf_group==="기타");
+
+  if(!unclear.length){
+    if(btn){btn.disabled=false;btn.textContent="🔄 자동변환";}
+    renderHwp();
+    showToast("✅ 1차 패턴으로 전체 분류 완료");
+    return;
+  }
+
+  // ── 2차: AI 보완 (미확정 행만) ────────────────────
+  if(!apiKey){
+    if(btn){btn.disabled=false;btn.textContent="🔄 자동변환";}
+    renderHwp();
+    showToast(`✅ 1차 완료 · 미확정 ${unclear.length}건 (API 키 없어 AI 생략)`);
+    return;
+  }
+  if(btn)btn.textContent=`⏳ 2차 AI 분석 (${unclear.length}건)...`;
+
+  try{
+    const rawList=unclear.map(({i,r})=>`${i}. ${r.raw||r.defect||r.device||""}`).join("\n");
+    const refTpl=getRefTpl();
+    const prompt=`소방점검 수기 메모에서 소방설비명과 소방시설 구분을 분석해 JSON만 반환하세요.
+소방시설 구분(sf_group): 소화설비, 경보설비, 피난구조설비, 소화용수설비, 소화활동설비, 기타
+소방설비명(device): 구체적 설비명(예: 자동화재탐지설비 및 시각경보기, 스프링클러설비 등). 판단 불가시 빈 문자열.
+관계법규(nfpc): NFPC 번호(예: NFPC 203). 판단 불가시 빈 문자열.${refTpl?"\n\n[참조양식]\n"+refTpl:""}
+
+입력:
+${rawList}
+
+출력(JSON 배열, 코드블럭·설명 없이):
+[{"i":0,"device":"소방설비명","sf_group":"구분","nfpc":"NFPC XXX"},...]`;
+
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:prompt}]})
+    });
+    if(!res.ok)throw new Error("API 오류 "+res.status);
+    const data=await res.json();
+    let txt=data.content[0].text.trim().replace(/^```json\n?/,"").replace(/^```\n?/,"").replace(/\n?```$/,"").trim();
+    const parsed=JSON.parse(txt);
+    let aiFixed=0;
+    parsed.forEach(item=>{
+      const r=rows2[item.i];
+      if(!r)return;
+      // device 비어있을 때만 AI 값 적용 — 사용자 입력·1차 추출값 보호
+      if(item.device&&!r.device){r.device=item.device;aiFixed++;}
+      if(item.sf_group&&item.sf_group!=="기타"&&!r.sf_group)r.sf_group=item.sf_group;
+      if(item.nfpc&&!r.nfpc)r.nfpc=item.nfpc;
+      else if(!r.nfpc){const n=getNFPC(r.device||item.device||"");if(n!=="-")r.nfpc=n;}
+    });
+    render2nd();renderHwp();
+    showToast(`✅ 완료 — 1차 패턴 + AI ${aiFixed}건 보완`);
+  }catch(e){
+    render2nd();renderHwp();
+    showToast("⚠️ 1차 완료 · AI 실패: "+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="🔄 자동변환";}
+  }
+}
+
+/* ══════════════════════════════════════
+   유틸
+══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   추가 변환 (appendMode)
+══════════════════════════════════════ */
+function addConvert(){
+  // 현재 rows2를 savedReports에 저장 (내용이 있을 때만)
+  if(rows2.length>0){
+    const now=new Date();
+    const ts=now.getFullYear()+"-"
+      +String(now.getMonth()+1).padStart(2,"0")+"-"
+      +String(now.getDate()).padStart(2,"0")+" "
+      +String(now.getHours()).padStart(2,"0")+":"
+      +String(now.getMinutes()).padStart(2,"0");
+    const site=document.getElementById("cfgSite").value||"";
+    const dong=document.getElementById("cfgDong").value||"";
+    savedReports.push({ts,site,dong,rows:JSON.parse(JSON.stringify(rows2)),memoPages:JSON.parse(JSON.stringify(memoPages))});
+  }
+  // 초기화
+  rows2=[];
+  memoPages=[];
+  appendMode=false;
+  uploadedFiles=[];
+  document.getElementById("fileList").innerHTML="";
+  document.getElementById("fileCnt").textContent="0";
+  document.getElementById("clearAllBtn").style.display="none";
+  document.getElementById("btn-area").style.display="flex";
+  document.getElementById("reBtn-area").style.display="none";
+  document.getElementById("doneBanner").style.display="none";
+  document.getElementById("errBanner").style.display="none";
+  document.getElementById("memoOut").style.display="none";
+  goStep(0);
+  showToast("📎 추가 변환 모드 — 새 이미지를 업로드 후 1차 변환하세요");
+}
+
+/* ══════════════════════════════════════
+   3차 변환 (AI 심층 개선)
+══════════════════════════════════════ */
+/* 층 문자열 → 정렬용 숫자 (지하: 음수, 지상: 양수) */
+function floorOrder(f){
+  if(!f)return 9999;
+  const s=f.replace(/\s/g,"");
+  const b=s.match(/(?:지하|B)(\d+)/i);if(b)return -parseInt(b[1]);
+  const n=s.match(/(\d+)/);return n?parseInt(n[1]):9999;
+}
+
+/* 소방시설 구분 정렬 순서 */
+const SF_ORDER=["소화설비","경보설비","피난구조설비","소화용수설비","소화활동설비","기타",""];
+function sfOrder(g){const i=SF_ORDER.indexOf(g);return i<0?SF_ORDER.length:i;}
+
+function sortRows2(){
+  const curSite=(document.getElementById("cfgSite")?.value||"").trim();
+  const curDong=(document.getElementById("cfgDong")?.value||"").trim();
+  rows2.sort((a,b)=>{
+    // 0순위: 사업장명 동일 묶기
+    const aSite=a.site||curSite;
+    const bSite=b.site||curSite;
+    const sc=aSite.localeCompare(bSite,"ko");if(sc!==0)return sc;
+    // 1순위: 동명 동일 묶기 (row.dong 없으면 현재 cfgDong)
+    const aDong=a.dong||curDong;
+    const bDong=b.dong||curDong;
+    const dc=aDong.localeCompare(bDong,"ko");if(dc!==0)return dc;
+    // 2순위: 소방시설 구분
+    const sg=sfOrder(a.sf_group)-sfOrder(b.sf_group);if(sg!==0)return sg;
+    // 3순위: 층
+    const fg=floorOrder(a.floor)-floorOrder(b.floor);if(fg!==0)return fg;
+    // 4순위: 위치
+    return (a.loc||"").localeCompare(b.loc||"","ko");
+  });
+  rows2.forEach((r,i)=>r.id=i+1);
+}
+
+function do3rdConvert(){
+  if(!rows2.length){showToast("⚠ 1·2차 변환 완료 후 사용 가능합니다.");return;}
+  sortRows2();
+  rows2.forEach((r,i)=>r.id=i+1);
+  render2nd();renderHwp();
+  showToast("✅ 3차 완료 — 소방시설·층·위치 순 정렬");
+}
+
+
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2800);
+}
+
+// 초기화
+goStep(0);
+</script>
+</body>
+</html>
